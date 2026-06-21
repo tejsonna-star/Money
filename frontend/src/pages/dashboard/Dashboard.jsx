@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { DashboardLayout } from '../../components/Sidebar'
 import { StatCard, ProgressBar } from '../../components/UI'
 import AIInsight from '../../components/AIInsight'
+import ChatBox from '../../components/ChatBox'
 import {
   getSession,
   getProfile,
@@ -11,7 +12,7 @@ import {
   monthlyIncome,
   formatCurrency,
 } from '../../lib/supabase'
-import { callAI } from '../../lib/api'
+import { callAI, sendChatMessage } from '../../lib/api'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -20,6 +21,8 @@ export default function Dashboard() {
   const [expenses, setExpenses] = useState([])
   const [insight, setInsight] = useState('')
   const [insightLoading, setInsightLoading] = useState(false)
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatLoading, setChatLoading] = useState(false)
   const [token, setToken] = useState(null)
 
   useEffect(() => {
@@ -35,6 +38,13 @@ export default function Dashboard() {
       setProfile(p)
       setDebts(d)
       setExpenses(e)
+
+      const inc = monthlyIncome(p?.salary, p?.pay_frequency)
+      const expTotal = e.reduce((s, x) => s + Number(x.amount), 0)
+      setChatMessages([{
+        role: 'assistant',
+        content: `Ask me anything about your finances or career. You're at ~${formatCurrency(inc)}/mo income and ~${formatCurrency(expTotal)}/mo expenses.`,
+      }])
     }
     load()
   }, [])
@@ -77,6 +87,40 @@ export default function Dashboard() {
       return () => clearTimeout(t)
     }
   }, [profile, token])
+
+  async function handleChatSend(text) {
+    if (!token) return
+    const userMsg = { role: 'user', content: text }
+    setChatMessages((prev) => [...prev, userMsg])
+    setChatLoading(true)
+    try {
+      const reply = await sendChatMessage(
+        text,
+        chatMessages.filter((m) => m.role === 'user' || m.role === 'assistant'),
+        {
+          careerGoal: profile?.career_goal,
+          salary: profile?.salary,
+          monthlyIncome: income,
+          monthlyExpenses: totalExpenses,
+          cashFlow,
+          totalDebt,
+          savings,
+          debtCount: debts.length,
+          jobTitle: profile?.job_title,
+          city: profile?.city,
+        },
+        token
+      )
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+    } catch (err) {
+      setChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: err.message || 'Something went wrong. Try again in a moment.',
+      }])
+    } finally {
+      setChatLoading(false)
+    }
+  }
 
   return (
     <DashboardLayout
@@ -124,8 +168,18 @@ export default function Dashboard() {
           content={insight}
           loading={insightLoading}
           onRefresh={fetchInsight}
-          actionLabel="Open AI Chat"
+          actionLabel="Full chat"
           onAction={() => navigate('/dashboard/chat')}
+        />
+      </div>
+
+      <div className="mt-6">
+        <h3 className="mb-3 font-heading text-lg font-semibold">Quick chat</h3>
+        <ChatBox
+          messages={chatMessages}
+          onSend={handleChatSend}
+          loading={chatLoading}
+          placeholder="e.g. How should I pay off my debt faster?"
         />
       </div>
     </DashboardLayout>
