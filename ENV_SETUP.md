@@ -9,13 +9,16 @@ External services (free tiers): **Supabase**, **Gemini**, **Stripe**
 ## Project structure on Vercel
 
 ```
-Money/                 ← repo root (connect this in Vercel)
-├── vercel.json        ← required — tells Vercel how to build
-├── api/               ← serverless API (/api/*)
-└── frontend/          ← React app
+Money/
+├── vercel.json        ← tells Vercel: frontend only (no backend service)
+└── frontend/
+    ├── api/           ← serverless API (/api/*)
+    └── src/           ← React app
 ```
 
-In Vercel: **Root Directory = `.`** (repo root, NOT `frontend`)
+In Vercel import screen:
+- **Root Directory:** `./` (repo root)
+- Vercel reads `vercel.json` — only **one** service (frontend), not backend
 
 ---
 
