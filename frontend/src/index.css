@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0A0A0F;
+  --surface: #12121A;
+  --card: #16161F;
+  --border: #1E1E2E;
+  --text: #F0F0F5;
+  --muted: #8888AA;
+  --accent-hover: #5A52E0;
+  --hero-glow: rgba(108, 99, 255, 0.05);
+  --header-bg: rgba(10, 10, 15, 0.8);
+}
+
+:root[data-theme="light"] {
+  --bg: #F5F5FA;
+  --surface: #FFFFFF;
+  --card: #FFFFFF;
+  --border: #E2E2EE;
+  --text: #0A0A0F;
+  --muted: #5C5C72;
+  --accent-hover: #5A52E0;
+  --hero-glow: rgba(108, 99, 255, 0.08);
+  --header-bg: rgba(245, 245, 250, 0.85);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-accent: #6C63FF;
+  --color-accent-hover: var(--accent-hover);
+  --color-mint: #00B87A;
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-danger: #FF4D6A;
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-heading: "Syne", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background-color: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+::selection {
+  background-color: color-mix(in srgb, #6C63FF 40%, transparent);
+}
+
+input, select, textarea, button {
+  font-family: inherit;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out forwards;
+}
+
+.landing-header {
+  background-color: var(--header-bg);
+}
+
+.hero-glow {
+  background-color: var(--hero-glow);
+}
+
+.mock-window-dot-red { background-color: color-mix(in srgb, var(--color-danger) 60%, transparent); }
+.mock-window-dot-mint { background-color: color-mix(in srgb, var(--color-mint) 60%, transparent); }
+.mock-window-dot-accent { background-color: color-mix(in srgb, var(--color-accent) 60%, transparent); }
