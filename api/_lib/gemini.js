@@ -3,10 +3,28 @@ const SYSTEM_PROMPT =
 
 const MODELS = [
   process.env.GEMINI_MODEL,
-  'gemini-2.0-flash',
   'gemini-1.5-flash',
+  'gemini-2.0-flash',
   'gemini-1.5-pro',
 ].filter(Boolean)
+
+const RETRYABLE_STATUSES = new Set([400, 404, 429])
+
+function parseGeminiError(status, body) {
+  let message = body
+  try {
+    const json = JSON.parse(body)
+    message = json.error?.message || body
+  } catch {
+    // keep raw body
+  }
+
+  if (status === 429) {
+    return 'Gemini API quota exceeded. Enable billing at ai.google.dev or wait and try again later.'
+  }
+
+  return String(message).slice(0, 200)
+}
 
 async function requestGeminiContents(model, apiKey, system, contents) {
   const response = await fetch(
@@ -23,8 +41,8 @@ async function requestGeminiContents(model, apiKey, system, contents) {
   )
 
   if (!response.ok) {
-    const err = await response.text()
-    const error = new Error(`Gemini (${model}): ${err.slice(0, 300)}`)
+    const errText = await response.text()
+    const error = new Error(parseGeminiError(response.status, errText))
     error.status = response.status
     throw error
   }
@@ -55,7 +73,7 @@ export async function callGemini(prompt) {
       return await requestGemini(model, apiKey, prompt)
     } catch (err) {
       lastError = err
-      if (err.status !== 404 && err.status !== 400) throw err
+      if (!RETRYABLE_STATUSES.has(err.status)) throw err
     }
   }
 
@@ -87,7 +105,7 @@ ${JSON.stringify(context, null, 2)}`
       return await requestGeminiContents(model, apiKey, system, contents)
     } catch (err) {
       lastError = err
-      if (err.status !== 404 && err.status !== 400) throw err
+      if (!RETRYABLE_STATUSES.has(err.status)) throw err
     }
   }
 
