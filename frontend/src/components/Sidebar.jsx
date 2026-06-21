@@ -6,6 +6,7 @@ import {
   Briefcase,
   Settings,
   LogOut,
+  MessageCircle,
 } from 'lucide-react'
 import { Logo } from './UI'
 import { supabase } from '../lib/supabase'
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/dashboard/debt', icon: CreditCard, label: 'Debt Tracker' },
   { to: '/dashboard/budget', icon: Wallet, label: 'Budget' },
   { to: '/dashboard/career', icon: Briefcase, label: 'Career Coach' },
+  { to: '/dashboard/chat', icon: MessageCircle, label: 'AI Chat' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ]
 

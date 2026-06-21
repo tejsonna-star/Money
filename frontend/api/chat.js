@@ -1,5 +1,5 @@
 import { requireAuth, sendError } from './_lib/auth.js'
-import { callGemini, buildPrompt } from './_lib/gemini.js'
+import { callGeminiChat } from './_lib/gemini.js'
 
 export const config = {
   api: { bodyParser: true },
@@ -30,26 +30,15 @@ export default async function handler(req, res) {
     const body = await readBody(req)
     await requireAuth(req)
 
-    const { type, data } = body
-    if (!type || !data) {
-      return res.status(400).json({ error: 'type and data required' })
+    const { message, history, context } = body
+    if (!message?.trim()) {
+      return res.status(400).json({ error: 'message required' })
     }
 
-    const prompt = buildPrompt(type, data)
-    let result = await callGemini(prompt)
-
-    if (type === 'raise_script') {
-      try {
-        const jsonMatch = result.match(/\{[\s\S]*\}/)
-        if (jsonMatch) result = JSON.parse(jsonMatch[0])
-      } catch {
-        // keep as string
-      }
-    }
-
-    return res.status(200).json({ result })
+    const reply = await callGeminiChat(message, history || [], context || {})
+    return res.status(200).json({ reply })
   } catch (err) {
-    console.error('AI error:', err.message)
+    console.error('Chat error:', err.message)
     sendError(res, err)
   }
 }

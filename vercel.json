@@ -8,6 +8,12 @@
     }
   },
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ]
+  ],
+  "functions": {
+    "frontend/api/**/*.js": {
+      "maxDuration": 30
+    }
+  }
 }

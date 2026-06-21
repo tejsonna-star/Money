@@ -9,6 +9,7 @@ import Debt from './pages/dashboard/Debt'
 import Budget from './pages/dashboard/Budget'
 import Career from './pages/dashboard/Career'
 import Settings from './pages/dashboard/Settings'
+import Chat from './pages/dashboard/Chat'
 import { supabase, getProfile } from './lib/supabase'
 
 const emptyAuthState = { loading: true, authed: false, onboarded: false }
@@ -118,6 +119,7 @@ export default function App() {
         <Route path="/dashboard/debt" element={<ProtectedRoute><Debt /></ProtectedRoute>} />
         <Route path="/dashboard/budget" element={<ProtectedRoute><Budget /></ProtectedRoute>} />
         <Route path="/dashboard/career" element={<ProtectedRoute><Career /></ProtectedRoute>} />
+        <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

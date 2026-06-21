@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { DashboardLayout } from '../../components/Sidebar'
 import { StatCard, ProgressBar } from '../../components/UI'
 import AIInsight from '../../components/AIInsight'
@@ -13,6 +14,7 @@ import {
 import { callAI } from '../../lib/api'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [debts, setDebts] = useState([])
   const [expenses, setExpenses] = useState([])
@@ -122,6 +124,8 @@ export default function Dashboard() {
           content={insight}
           loading={insightLoading}
           onRefresh={fetchInsight}
+          actionLabel="Open AI Chat"
+          onAction={() => navigate('/dashboard/chat')}
         />
       </div>
     </DashboardLayout>

@@ -1,5 +1,18 @@
 const API_BASE = import.meta.env.VITE_API_URL || ''
 
+async function parseApiError(res) {
+  const text = await res.text()
+  try {
+    const json = JSON.parse(text)
+    return json.error || text
+  } catch {
+    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+      return `API not reachable (${res.status}). Check Vercel env vars GEMINI_API_KEY + SUPABASE_SERVICE_KEY, then redeploy.`
+    }
+    return text.slice(0, 200) || `Request failed (${res.status})`
+  }
+}
+
 export async function callAI(type, data, token) {
   const res = await fetch(`${API_BASE}/api/ai`, {
     method: 'POST',
@@ -10,11 +23,26 @@ export async function callAI(type, data, token) {
     body: JSON.stringify({ type, data }),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error || 'AI request failed')
+    throw new Error(await parseApiError(res))
   }
   const json = await res.json()
   return json.result
+}
+
+export async function sendChatMessage(message, history, context, token) {
+  const res = await fetch(`${API_BASE}/api/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ message, history, context }),
+  })
+  if (!res.ok) {
+    throw new Error(await parseApiError(res))
+  }
+  const json = await res.json()
+  return json.reply
 }
 
 export async function createCheckoutSession(token) {

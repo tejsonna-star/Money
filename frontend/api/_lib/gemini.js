@@ -8,15 +8,15 @@ const MODELS = [
   'gemini-1.5-pro',
 ].filter(Boolean)
 
-async function requestGemini(model, apiKey, prompt) {
+async function requestGeminiContents(model, apiKey, system, contents) {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        systemInstruction: { parts: [{ text: system }] },
+        contents,
         generationConfig: { maxOutputTokens: 1000 },
       }),
     }
@@ -24,7 +24,7 @@ async function requestGemini(model, apiKey, prompt) {
 
   if (!response.ok) {
     const err = await response.text()
-    const error = new Error(`Gemini (${model}): ${err.slice(0, 200)}`)
+    const error = new Error(`Gemini (${model}): ${err.slice(0, 300)}`)
     error.status = response.status
     throw error
   }
@@ -33,6 +33,12 @@ async function requestGemini(model, apiKey, prompt) {
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) throw new Error('Gemini returned no content')
   return text
+}
+
+async function requestGemini(model, apiKey, prompt) {
+  return requestGeminiContents(model, apiKey, SYSTEM_PROMPT, [
+    { role: 'user', parts: [{ text: prompt }] },
+  ])
 }
 
 export async function callGemini(prompt) {
@@ -47,6 +53,38 @@ export async function callGemini(prompt) {
   for (const model of models) {
     try {
       return await requestGemini(model, apiKey, prompt)
+    } catch (err) {
+      lastError = err
+      if (err.status !== 404 && err.status !== 400) throw err
+    }
+  }
+
+  throw lastError || new Error('All Gemini models failed')
+}
+
+export async function callGeminiChat(message, history = [], context = {}) {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not set on Vercel — add it and redeploy')
+  }
+
+  const system = `${SYSTEM_PROMPT}
+
+User financial snapshot (use these numbers when relevant):
+${JSON.stringify(context, null, 2)}`
+
+  const contents = history.slice(-8).map((msg) => ({
+    role: msg.role === 'assistant' ? 'model' : 'user',
+    parts: [{ text: msg.content }],
+  }))
+  contents.push({ role: 'user', parts: [{ text: message }] })
+
+  const models = [...new Set(MODELS)]
+  let lastError
+
+  for (const model of models) {
+    try {
+      return await requestGeminiContents(model, apiKey, system, contents)
     } catch (err) {
       lastError = err
       if (err.status !== 404 && err.status !== 400) throw err
