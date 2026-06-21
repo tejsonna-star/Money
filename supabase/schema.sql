@@ -164,3 +164,85 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- ========== Competitive feature expansion ==========
+
+alter table profiles add column if not exists currency text default 'USD';
+alter table profiles add column if not exists avatar_url text;
+alter table profiles add column if not exists notification_prefs jsonb default '{"budget_alerts": true, "weekly_summary": true}';
+alter table profiles add column if not exists onboarding_checklist jsonb default '{}';
+
+alter table transactions add column if not exists is_recurring boolean default false;
+alter table transactions add column if not exists recurring_frequency text;
+alter table transactions add column if not exists parent_id uuid references transactions(id) on delete cascade;
+alter table transactions add column if not exists account_id uuid;
+alter table transactions add column if not exists last_recurred_at date;
+
+alter table goals add column if not exists category text default 'general';
+
+alter table budget_limits add column if not exists rollover_balance numeric default 0;
+
+create table if not exists accounts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  name text not null,
+  type text not null check (type in ('checking', 'savings', 'credit', 'investment', 'asset', 'other')),
+  balance numeric not null default 0,
+  institution text,
+  created_at timestamp with time zone default now()
+);
+
+create table if not exists side_income (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  amount numeric not null,
+  source text,
+  recorded_date date not null default current_date,
+  note text,
+  created_at timestamp with time zone default now()
+);
+
+create table if not exists user_gamification (
+  user_id uuid primary key references profiles(id) on delete cascade,
+  health_score integer default 50,
+  streak_days integer default 0,
+  last_activity_date date,
+  badges jsonb default '[]',
+  completed_challenges jsonb default '[]',
+  updated_at timestamp with time zone default now()
+);
+
+create table if not exists budget_monthly_snapshots (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references profiles(id) on delete cascade,
+  category text not null,
+  month_key text not null,
+  spent numeric default 0,
+  limit_amount numeric default 0,
+  rollover_in numeric default 0,
+  unique (user_id, category, month_key)
+);
+
+alter table accounts enable row level security;
+alter table side_income enable row level security;
+alter table user_gamification enable row level security;
+alter table budget_monthly_snapshots enable row level security;
+
+create policy "Users can manage own accounts" on accounts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can manage own side_income" on side_income for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can manage own gamification" on user_gamification for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "Users can manage own budget snapshots" on budget_monthly_snapshots for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Init gamification row for new users
+create or replace function public.init_user_gamification()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.user_gamification (user_id) values (new.id) on conflict (user_id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_profile_gamification on profiles;
+create trigger on_profile_gamification
+  after insert on profiles
+  for each row execute function public.init_user_gamification();

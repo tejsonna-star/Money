@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { DashboardLayout } from '../../components/Sidebar'
 import { Button, Card, Input, Select } from '../../components/UI'
-import { supabase, getSession, getProfile, formatCurrency, monthlyIncome } from '../../lib/supabase'
+import { supabase, getSession, getProfile, formatCurrency, monthlyIncome, updateProfile, deleteUserData, getAccounts, getTransactions, getGoals, getDebts, getExpenses } from '../../lib/supabase'
 import { createCheckoutSession, createPortalSession } from '../../lib/api'
+import { CURRENCIES } from '../../lib/constants'
+import { exportUserDataJson, exportTransactionsCsv } from '../../lib/financeUtils'
+import { toastSuccess, toastError } from '../../lib/toast'
 
 const CAREER_GOALS = [
   'Get a raise',
@@ -31,6 +34,10 @@ export default function Settings() {
   const [savings, setSavings] = useState('')
   const [subscriptionStatus, setSubscriptionStatus] = useState('free')
   const [stripeCustomerId, setStripeCustomerId] = useState(null)
+  const [currency, setCurrency] = useState('USD')
+  const [avatarUrl, setAvatarUrl] = useState('')
+  const [budgetAlerts, setBudgetAlerts] = useState(true)
+  const [weeklySummary, setWeeklySummary] = useState(true)
 
   useEffect(() => {
     async function load() {
@@ -49,6 +56,10 @@ export default function Settings() {
         setSavings(profile.savings ? String(profile.savings) : '')
         setSubscriptionStatus(profile.subscription_status || 'free')
         setStripeCustomerId(profile.stripe_customer_id)
+        setCurrency(profile.currency || 'USD')
+        setAvatarUrl(profile.avatar_url || '')
+        setBudgetAlerts(profile.notification_prefs?.budget_alerts !== false)
+        setWeeklySummary(profile.notification_prefs?.weekly_summary !== false)
       }
     }
     load()
@@ -74,6 +85,9 @@ export default function Settings() {
         years_experience: Number(yearsExp) || 0,
         city,
         savings: Number(savings) || 0,
+        currency,
+        avatar_url: avatarUrl || null,
+        notification_prefs: { budget_alerts: budgetAlerts, weekly_summary: weeklySummary },
       }
       const { error: updateError } = await supabase
         .from('profiles')
@@ -81,6 +95,7 @@ export default function Settings() {
         .eq('id', userId)
       if (updateError) throw updateError
       setMessage('Profile saved.')
+      toastSuccess('Profile saved')
     } catch (err) {
       setError(err.message || 'Could not save profile')
     } finally {
@@ -192,6 +207,15 @@ export default function Settings() {
               value={savings}
               onChange={(e) => setSavings(e.target.value)}
             />
+            <Input
+              label="Profile picture URL"
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder="https://..."
+            />
+            <Select label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.label} ({c.code})</option>)}
+            </Select>
             <p className="text-xs text-muted">
               Estimated monthly income: {formatCurrency(monthlyIncome(Number(salary), payFrequency))}
             </p>
@@ -199,6 +223,50 @@ export default function Settings() {
               {saving ? 'Saving...' : 'Save profile'}
             </Button>
           </form>
+        </Card>
+
+        <Card>
+          <h3 className="font-heading text-lg font-semibold">Notifications</h3>
+          <div className="mt-4 space-y-3">
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={budgetAlerts} onChange={(e) => setBudgetAlerts(e.target.checked)} /> Budget over-limit alerts</label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={weeklySummary} onChange={(e) => setWeeklySummary(e.target.checked)} /> Weekly summary on dashboard</label>
+          </div>
+        </Card>
+
+        <Card>
+          <h3 className="font-heading text-lg font-semibold">Data export</h3>
+          <p className="mt-1 text-sm text-muted">Download your Upshift data.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={async () => {
+              if (!userId) return
+              const data = { profile: await getProfile(userId), accounts: await getAccounts(userId), transactions: await getTransactions(userId), goals: await getGoals(userId), debts: await getDebts(userId) }
+              const blob = new Blob([exportUserDataJson(data)], { type: 'application/json' })
+              const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'upshift-export.json'; a.click()
+              toastSuccess('JSON exported')
+            }}>Export JSON</Button>
+            <Button variant="secondary" size="sm" onClick={async () => {
+              if (!userId) return
+              const tx = await getTransactions(userId)
+              const blob = new Blob([exportTransactionsCsv(tx)], { type: 'text/csv' })
+              const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'upshift-transactions.csv'; a.click()
+              toastSuccess('CSV exported')
+            }}>Export transactions CSV</Button>
+          </div>
+        </Card>
+
+        <Card>
+          <h3 className="font-heading text-lg font-semibold text-danger">Delete account</h3>
+          <p className="mt-1 text-sm text-muted">Permanently delete your profile and all financial data.</p>
+          <Button variant="danger" className="mt-4" onClick={async () => {
+            if (!userId || !window.confirm('Delete all your data? This cannot be undone.')) return
+            try {
+              await deleteUserData(userId)
+              toastSuccess('Account data deleted')
+              window.location.href = '/'
+            } catch (err) {
+              toastError(err.message)
+            }
+          }}>Delete my data</Button>
         </Card>
 
         <Card>

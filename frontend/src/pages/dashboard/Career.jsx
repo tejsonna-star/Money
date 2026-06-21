@@ -13,6 +13,8 @@ import {
   formatCurrency,
 } from '../../lib/supabase'
 import { callAI, sendChatMessage } from '../../lib/api'
+import { getSideIncome, addSideIncome, deleteSideIncome } from '../../lib/supabase'
+import { toastSuccess } from '../../lib/toast'
 
 export default function Career() {
   const [tab, setTab] = useState('raise')
@@ -41,20 +43,29 @@ export default function Career() {
   const [chatMessages, setChatMessages] = useState([])
   const [chatLoading, setChatLoading] = useState(false)
   const [debts, setDebts] = useState([])
+  const [sideIncome, setSideIncome] = useState([])
+  const [sideForm, setSideForm] = useState({ amount: '', source: '', note: '' })
+  const [benchmarkResult, setBenchmarkResult] = useState('')
+  const [skillsResult, setSkillsResult] = useState('')
+  const [offerA, setOfferA] = useState({ salary: '', title: '', benefits: '' })
+  const [offerB, setOfferB] = useState({ salary: '', title: '', benefits: '' })
+  const [offerResult, setOfferResult] = useState('')
 
   useEffect(() => {
     async function load() {
       const session = await getSession()
       if (!session) return
       setToken(session.access_token)
-      const [p, e, d] = await Promise.all([
+      const [p, e, d, side] = await Promise.all([
         getProfile(session.user.id),
         getExpenses(session.user.id),
         getDebts(session.user.id),
+        getSideIncome(session.user.id),
       ])
       setProfile(p)
       setExpenses(e)
       setDebts(d)
+      setSideIncome(side)
       setSalary(String(p?.salary || ''))
       setJobTitle(p?.job_title || '')
       setYearsExp(String(p?.years_experience || ''))
@@ -194,8 +205,13 @@ export default function Career() {
       <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
         {[
           { id: 'raise', label: 'Raise Negotiator' },
-          { id: 'move', label: 'Career Move Calculator' },
-          { id: 'advisor', label: 'AI Career Advisor' },
+          { id: 'move', label: 'Career Move' },
+          { id: 'side', label: 'Side Hustle' },
+          { id: 'benchmark', label: 'Salary Benchmark' },
+          { id: 'simulator', label: 'Raise Simulator' },
+          { id: 'skills', label: 'Skills Gap' },
+          { id: 'offers', label: 'Job Offers' },
+          { id: 'advisor', label: 'AI Advisor' },
         ].map(({ id, label }) => (
           <button
             key={id}
@@ -331,6 +347,120 @@ export default function Career() {
               content={careerMoveResult}
               loading={loading}
             />
+          </div>
+        </div>
+      )}
+
+      {tab === 'side' && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <h3 className="font-heading text-lg font-semibold">Log side income</h3>
+            <form className="mt-4 space-y-3" onSubmit={async (e) => {
+              e.preventDefault()
+              const session = await getSession()
+              if (!session) return
+              await addSideIncome(session.user.id, { amount: Number(sideForm.amount), source: sideForm.source, note: sideForm.note, recorded_date: new Date().toISOString().slice(0, 10) })
+              toastSuccess('Side income logged')
+              setSideIncome(await getSideIncome(session.user.id))
+              setSideForm({ amount: '', source: '', note: '' })
+            }}>
+              <Input label="Amount ($)" type="number" value={sideForm.amount} onChange={(e) => setSideForm({ ...sideForm, amount: e.target.value })} required />
+              <Input label="Source" value={sideForm.source} onChange={(e) => setSideForm({ ...sideForm, source: e.target.value })} placeholder="Freelance, Etsy..." />
+              <Input label="Note" value={sideForm.note} onChange={(e) => setSideForm({ ...sideForm, note: e.target.value })} />
+              <Button type="submit">Add</Button>
+            </form>
+          </Card>
+          <Card>
+            <h3 className="font-heading text-lg font-semibold">Side income history</h3>
+            <p className="mt-2 text-sm text-muted">Total: {formatCurrency(sideIncome.reduce((s, x) => s + Number(x.amount), 0))}</p>
+            <ul className="mt-4 space-y-2">
+              {sideIncome.map((s) => (
+                <li key={s.id} className="flex justify-between text-sm border-b border-border/50 py-2">
+                  <span>{s.source || 'Side income'} · {s.recorded_date}</span>
+                  <span className="font-medium text-mint">+{formatCurrency(s.amount)}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+      )}
+
+      {tab === 'benchmark' && (
+        <Card className="max-w-2xl">
+          <h3 className="font-heading text-lg font-semibold">Salary benchmarking</h3>
+          <p className="mt-1 text-sm text-muted">AI estimate based on role, city, and experience.</p>
+          <Button className="mt-4" disabled={loading} onClick={async () => {
+            if (!token) return
+            setLoading(true)
+            try {
+              const r = await callAI('salary_benchmark', { jobTitle, city, yearsExperience: Number(yearsExp), salary: Number(salary) }, token)
+              setBenchmarkResult(r)
+            } finally { setLoading(false) }
+          }}>Get benchmark</Button>
+          {benchmarkResult && <p className="mt-4 text-sm leading-relaxed whitespace-pre-wrap">{benchmarkResult}</p>}
+        </Card>
+      )}
+
+      {tab === 'simulator' && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[10, 15, 20].map((pct) => {
+            const newSalary = Number(salary) * (1 + pct / 100)
+            const newIncome = monthlyIncome(newSalary, profile?.pay_frequency)
+            const delta = newIncome - income
+            return (
+              <Card key={pct}>
+                <p className="text-sm text-muted">{pct}% raise</p>
+                <p className="mt-2 font-heading text-2xl font-bold">{formatCurrency(newSalary)}</p>
+                <p className="mt-1 text-sm text-mint">+{formatCurrency(delta)}/mo cash flow</p>
+                <p className="mt-2 text-xs text-muted">Runway: {monthlyExpenses > 0 ? ((savings / monthlyExpenses) + (delta * 12 / (monthlyExpenses * 12))).toFixed(1) : '—'} mo impact</p>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {tab === 'skills' && (
+        <Card className="max-w-2xl">
+          <Button disabled={loading} onClick={async () => {
+            if (!token) return
+            setLoading(true)
+            try {
+              const r = await callAI('skills_gap', { careerGoal: profile?.career_goal, jobTitle, yearsExperience: Number(yearsExp), city }, token)
+              setSkillsResult(r)
+            } finally { setLoading(false) }
+          }}>Analyze skills gap</Button>
+          {skillsResult && <p className="mt-4 text-sm leading-relaxed whitespace-pre-wrap">{skillsResult}</p>}
+        </Card>
+      )}
+
+      {tab === 'offers' && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <h3 className="font-semibold">Offer A</h3>
+            <div className="mt-3 space-y-3">
+              <Input label="Salary" type="number" value={offerA.salary} onChange={(e) => setOfferA({ ...offerA, salary: e.target.value })} />
+              <Input label="Title" value={offerA.title} onChange={(e) => setOfferA({ ...offerA, title: e.target.value })} />
+              <Input label="Benefits" value={offerA.benefits} onChange={(e) => setOfferA({ ...offerA, benefits: e.target.value })} />
+            </div>
+          </Card>
+          <Card>
+            <h3 className="font-semibold">Offer B</h3>
+            <div className="mt-3 space-y-3">
+              <Input label="Salary" type="number" value={offerB.salary} onChange={(e) => setOfferB({ ...offerB, salary: e.target.value })} />
+              <Input label="Title" value={offerB.title} onChange={(e) => setOfferB({ ...offerB, title: e.target.value })} />
+              <Input label="Benefits" value={offerB.benefits} onChange={(e) => setOfferB({ ...offerB, benefits: e.target.value })} />
+            </div>
+          </Card>
+          <div className="lg:col-span-2">
+            <Button disabled={loading} onClick={async () => {
+              if (!token) return
+              setLoading(true)
+              try {
+                const r = await callAI('job_offer_compare', { offerA, offerB, monthlyExpenses }, token)
+                setOfferResult(r)
+              } finally { setLoading(false) }
+            }}>Compare offers</Button>
+            {offerResult && <p className="mt-4 text-sm leading-relaxed whitespace-pre-wrap">{offerResult}</p>}
           </div>
         </div>
       )}

@@ -10,6 +10,8 @@ import {
   MessageCircle,
   Receipt,
   Target,
+  Landmark,
+  LineChart,
   Menu,
   X,
 } from 'lucide-react'
@@ -19,7 +21,9 @@ import { supabase } from '../lib/supabase'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', end: true },
+  { to: '/dashboard/accounts', icon: Landmark, label: 'Accounts' },
   { to: '/dashboard/transactions', icon: Receipt, label: 'Transactions' },
+  { to: '/dashboard/insights', icon: LineChart, label: 'Insights' },
   { to: '/dashboard/debt', icon: CreditCard, label: 'Debt Tracker' },
   { to: '/dashboard/budget', icon: Wallet, label: 'Budget' },
   { to: '/dashboard/goals', icon: Target, label: 'Goals' },

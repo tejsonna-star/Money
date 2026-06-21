@@ -190,6 +190,68 @@ Number of debts: ${data.debtCount}
 
 Be specific and actionable. One clear recommendation.`
 
+    case 'monthly_report':
+      return `Write a concise monthly financial report (3-4 paragraphs) covering spending patterns, savings progress, and 2-3 actionable recommendations.
+
+Income: $${Math.round(data.income)}
+Expenses: $${Math.round(data.totalExpenses)}
+Cash flow: $${Math.round(data.cashFlow)}
+Savings: $${Math.round(data.savings || 0)}
+Recent transactions: ${JSON.stringify(data.transactions?.slice(0, 15) || [])}
+
+Use plain English. Highlight wins and areas to improve.`
+
+    case 'what_if':
+      return `Analyze this what-if scenario in 2-3 paragraphs.
+
+What if the user cut $${data.cutAmount}/month from ${data.category}?
+Current income: $${Math.round(data.income)}
+Current monthly expenses: $${Math.round(data.monthlyExpenses)}
+Current savings: $${Math.round(data.savings || 0)}
+Career goal: ${data.careerGoal || 'not set'}
+
+Show impact on cash flow, savings rate, and goal timeline. Be specific with numbers.`
+
+    case 'weekly_summary':
+      return `Write a brief weekly email-style financial summary (2-3 short paragraphs). Friendly tone.
+
+Income: $${Math.round(data.income)}
+Expenses this week: $${Math.round(data.weeklyExpenses || 0)}
+Cash flow: $${Math.round(data.cashFlow)}
+Health score: ${data.healthScore || 50}/100
+Streak: ${data.streakDays || 0} days
+
+Highlight one win and one focus area for next week.`
+
+    case 'salary_benchmark':
+      return `Provide salary benchmarking for this role. Respond in 2-3 paragraphs with a clear estimated range.
+
+Job title: ${data.jobTitle}
+City: ${data.city}
+Years experience: ${data.yearsExperience}
+Current salary: $${data.salary}
+
+Include market range estimate, whether they appear underpaid, and one negotiation tip. Note estimates vary by source.`
+
+    case 'skills_gap':
+      return `Based on their career goal, suggest 3-5 skills to learn and how to start. 2-3 paragraphs.
+
+Career goal: ${data.careerGoal}
+Job title: ${data.jobTitle}
+Years experience: ${data.yearsExperience}
+City: ${data.city}
+
+Be practical and specific.`
+
+    case 'job_offer_compare':
+      return `Compare these two job offers side by side. 3-4 paragraphs with a clear recommendation.
+
+Offer A: ${JSON.stringify(data.offerA)}
+Offer B: ${JSON.stringify(data.offerB)}
+Current monthly expenses: $${Math.round(data.monthlyExpenses || 0)}
+
+Compare total compensation, growth potential, and financial impact.`
+
     default:
       throw new Error(`Unknown AI type: ${type}`)
   }

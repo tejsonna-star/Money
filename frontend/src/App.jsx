@@ -8,6 +8,8 @@ import ToastContainer from './components/ToastContainer'
 import { supabase, getProfile } from './lib/supabase'
 
 const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'))
+const Accounts = lazy(() => import('./pages/dashboard/Accounts'))
+const Insights = lazy(() => import('./pages/dashboard/Insights'))
 const Debt = lazy(() => import('./pages/dashboard/Debt'))
 const Budget = lazy(() => import('./pages/dashboard/Budget'))
 const Career = lazy(() => import('./pages/dashboard/Career'))
@@ -131,6 +133,8 @@ function AnimatedRoutes() {
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/dashboard" element={<ProtectedRoute><LazyPage><Dashboard /></LazyPage></ProtectedRoute>} />
+        <Route path="/dashboard/accounts" element={<ProtectedRoute><LazyPage><Accounts /></LazyPage></ProtectedRoute>} />
+        <Route path="/dashboard/insights" element={<ProtectedRoute><LazyPage><Insights /></LazyPage></ProtectedRoute>} />
         <Route path="/dashboard/transactions" element={<ProtectedRoute><LazyPage><Transactions /></LazyPage></ProtectedRoute>} />
         <Route path="/dashboard/debt" element={<ProtectedRoute><LazyPage><Debt /></LazyPage></ProtectedRoute>} />
         <Route path="/dashboard/budget" element={<ProtectedRoute><LazyPage><Budget /></LazyPage></ProtectedRoute>} />

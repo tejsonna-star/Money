@@ -286,10 +286,10 @@ export function monthlyIncome(salary, payFrequency) {
   }
 }
 
-export function formatCurrency(amount) {
+export function formatCurrency(amount, currency = 'USD') {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
+    currency: currency || 'USD',
     maximumFractionDigits: 0,
   }).format(amount || 0)
 }
@@ -314,4 +314,178 @@ export function formatDateTime(date = new Date()) {
     hour: 'numeric',
     minute: '2-digit',
   })
+}
+
+// --- Accounts ---
+export async function getAccounts(userId) {
+  try {
+    const { data, error } = await supabase.from('accounts').select('*').eq('user_id', userId).order('created_at')
+    if (error) return []
+    return data || []
+  } catch { return [] }
+}
+
+export async function addAccount(userId, account) {
+  const { data, error } = await supabase.from('accounts').insert({ user_id: userId, ...account }).select().single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function updateAccount(id, updates) {
+  const { data, error } = await supabase.from('accounts').update(updates).eq('id', id).select().single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function deleteAccount(id) {
+  const { error } = await supabase.from('accounts').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// --- Side income ---
+export async function getSideIncome(userId) {
+  try {
+    const { data, error } = await supabase.from('side_income').select('*').eq('user_id', userId).order('recorded_date', { ascending: false })
+    if (error) return []
+    return data || []
+  } catch { return [] }
+}
+
+export async function addSideIncome(userId, entry) {
+  const { data, error } = await supabase.from('side_income').insert({ user_id: userId, ...entry }).select().single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function deleteSideIncome(id) {
+  const { error } = await supabase.from('side_income').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// --- Gamification ---
+export async function getGamification(userId) {
+  try {
+    const { data, error } = await supabase.from('user_gamification').select('*').eq('user_id', userId).maybeSingle()
+    if (error) return null
+    return data
+  } catch { return null }
+}
+
+export async function upsertGamification(userId, updates) {
+  const { data, error } = await supabase.from('user_gamification').upsert({ user_id: userId, ...updates, updated_at: new Date().toISOString() }).select().single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function recordActivity(userId) {
+  const today = new Date().toISOString().slice(0, 10)
+  const g = await getGamification(userId)
+  const last = g?.last_activity_date
+  let streak = g?.streak_days || 0
+  if (last !== today) {
+    const yesterday = new Date()
+    yesterday.setDate(yesterday.getDate() - 1)
+    const yStr = yesterday.toISOString().slice(0, 10)
+    streak = last === yStr ? streak + 1 : 1
+    await upsertGamification(userId, { streak_days: streak, last_activity_date: today })
+  }
+  return streak
+}
+
+// --- Recurring transactions ---
+export async function processRecurringTransactions(userId) {
+  const { data: templates } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_recurring', true)
+    .is('parent_id', null)
+
+  if (!templates?.length) return
+
+  const today = new Date()
+  for (const tpl of templates) {
+    const freq = tpl.recurring_frequency || 'monthly'
+    const last = tpl.last_recurred_at || tpl.transaction_date
+    const lastDate = new Date(last)
+    let due = false
+    if (freq === 'weekly') {
+      due = (today - lastDate) / 86400000 >= 7
+    } else {
+      due = today.getMonth() !== lastDate.getMonth() || today.getFullYear() !== lastDate.getFullYear()
+    }
+    if (!due) continue
+
+    await supabase.from('transactions').insert({
+      user_id: userId,
+      amount: tpl.amount,
+      category: tpl.category,
+      type: tpl.type,
+      transaction_date: today.toISOString().slice(0, 10),
+      note: tpl.note ? `${tpl.note} (recurring)` : 'Recurring',
+      account_id: tpl.account_id,
+    })
+    await supabase.from('transactions').update({ last_recurred_at: today.toISOString().slice(0, 10) }).eq('id', tpl.id)
+  }
+}
+
+export async function addTransactionWithSplits(userId, parent, splits) {
+  const { data: parentTx, error } = await supabase.from('transactions').insert({ user_id: userId, ...parent }).select().single()
+  if (error) throw new Error(error.message)
+  if (splits?.length) {
+    const children = splits.map((s) => ({
+      user_id: userId,
+      amount: Number(s.amount),
+      category: s.category,
+      type: parent.type,
+      transaction_date: parent.transaction_date,
+      parent_id: parentTx.id,
+      note: s.note || null,
+    }))
+    await supabase.from('transactions').insert(children)
+  }
+  return parentTx
+}
+
+export async function updateProfile(userId, updates) {
+  const { data, error } = await supabase.from('profiles').update(updates).eq('id', userId).select().single()
+  if (error) throw new Error(error.message)
+  return data
+}
+
+export async function deleteUserData(userId) {
+  const { error } = await supabase.from('profiles').delete().eq('id', userId)
+  if (error) throw new Error(error.message)
+  await supabase.auth.signOut()
+}
+
+export async function applyBudgetRolloverForMonth(userId, limits, categorySpending) {
+  const updates = limits.map((l) => {
+    const spent = categorySpending[l.category] || 0
+    const effective = Number(l.monthly_limit) + Number(l.rollover_balance || 0)
+    const remaining = Math.max(0, effective - spent)
+    return upsertBudgetLimitWithRollover(userId, l.category, l.monthly_limit, remaining)
+  })
+  await Promise.all(updates)
+}
+
+async function upsertBudgetLimitWithRollover(userId, category, monthlyLimit, rolloverBalance) {
+  return supabase.from('budget_limits').upsert(
+    { user_id: userId, category, monthly_limit: Number(monthlyLimit), rollover_balance: Number(rolloverBalance) },
+    { onConflict: 'user_id,category' }
+  )
+}
+
+export async function saveBudgetSnapshot(userId, category, monthKey, spent, limitAmount, rolloverIn) {
+  await supabase.from('budget_monthly_snapshots').upsert({
+    user_id: userId, category, month_key: monthKey, spent, limit_amount: limitAmount, rollover_in: rolloverIn,
+  }, { onConflict: 'user_id,category,month_key' })
+}
+
+export async function getBudgetSnapshots(userId) {
+  try {
+    const { data, error } = await supabase.from('budget_monthly_snapshots').select('*').eq('user_id', userId).order('month_key')
+    if (error) return []
+    return data || []
+  } catch { return [] }
 }
