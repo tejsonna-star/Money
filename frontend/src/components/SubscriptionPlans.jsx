@@ -1,10 +1,11 @@
-import { Check } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
 import { Button } from './UI'
 import { SUBSCRIPTION_PLANS } from '../lib/constants'
 
 export default function SubscriptionPlans({
   currentPlan = 'free',
   loading = false,
+  stripeConfigured = false,
   onSelectPlan,
   onManageBilling,
   hasStripeCustomer = false,
@@ -17,6 +18,19 @@ export default function SubscriptionPlans({
           Start free. Upgrade anytime — cancel whenever you want.
         </p>
       </div>
+
+      {!stripeConfigured && (
+        <div className="flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3">
+          <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+          <div className="text-sm">
+            <p className="font-medium text-text">Billing preview mode</p>
+            <p className="mt-0.5 text-muted">
+              Stripe isn&apos;t connected yet. Plans are live here for preview — when you add{' '}
+              <code className="text-xs">STRIPE_SECRET_KEY</code> and price IDs on Vercel, checkout will work automatically.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         {SUBSCRIPTION_PLANS.map((plan) => {
@@ -79,7 +93,7 @@ export default function SubscriptionPlans({
                     disabled={loading}
                     onClick={() => onSelectPlan(plan.id)}
                   >
-                    {loading ? 'Loading...' : plan.cta}
+                    {loading ? 'Loading...' : stripeConfigured ? plan.cta : `Preview ${plan.name}`}
                   </Button>
                 )}
               </div>
@@ -88,7 +102,7 @@ export default function SubscriptionPlans({
         })}
       </div>
 
-      {hasStripeCustomer && currentPlan !== 'free' && (
+      {hasStripeCustomer && currentPlan !== 'free' && stripeConfigured && (
         <div className="rounded-xl border border-border bg-surface p-4 text-center">
           <p className="text-sm text-muted">Need to update payment method or cancel?</p>
           <Button variant="ghost" size="sm" className="mt-2" onClick={onManageBilling} disabled={loading}>
@@ -98,7 +112,9 @@ export default function SubscriptionPlans({
       )}
 
       <p className="text-center text-xs text-muted">
-        Plus & Pro include a 7-day free trial when Stripe is configured. Prices in USD.
+        {stripeConfigured
+          ? 'Plus & Pro include a 7-day free trial. Prices in USD.'
+          : 'Add STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID_PLUS, and STRIPE_PRICE_ID_PRO to enable checkout.'}
       </p>
     </div>
   )

@@ -9,7 +9,7 @@ import {
   supabase, getSession, getProfile, formatCurrency, monthlyIncome,
   updateProfile, deleteUserData, getAccounts, getTransactions, getGoals, getDebts,
 } from '../../lib/supabase'
-import { createCheckoutSession, createPortalSession } from '../../lib/api'
+import { createCheckoutSession, createPortalSession, getSubscriptionStatus } from '../../lib/api'
 import { CURRENCIES, getCurrencyMeta } from '../../lib/constants'
 import { exportUserDataJson, exportTransactionsCsv } from '../../lib/financeUtils'
 import { toastSuccess, toastError } from '../../lib/toast'
@@ -49,6 +49,7 @@ export default function Settings() {
   const [city, setCity] = useState('')
   const [savings, setSavings] = useState('')
   const [subscriptionPlan, setSubscriptionPlan] = useState('free')
+  const [stripeConfigured, setStripeConfigured] = useState(false)
   const [stripeCustomerId, setStripeCustomerId] = useState(null)
   const [currency, setCurrency] = useState('USD')
   const [avatarUrl, setAvatarUrl] = useState('')
@@ -78,6 +79,13 @@ export default function Settings() {
         setAvatarUrl(profile.avatar_url || '')
         setBudgetAlerts(profile.notification_prefs?.budget_alerts !== false)
         setWeeklySummary(profile.notification_prefs?.weekly_summary !== false)
+      }
+      try {
+        const sub = await getSubscriptionStatus(session.access_token)
+        setStripeConfigured(Boolean(sub.stripeConfigured))
+        if (sub.plan) setSubscriptionPlan(sub.plan)
+      } catch {
+        setStripeConfigured(false)
       }
     }
     load()
@@ -125,13 +133,19 @@ export default function Settings() {
   }
 
   async function handleSelectPlan(planId) {
-    if (!token || planId === 'free') return
+    if (!token || !userId || planId === 'free') return
     setLoading(true)
     try {
-      const { url } = await createCheckoutSession(token, planId)
-      window.location.href = url
-    } catch {
-      toastError('Stripe is not configured. Add STRIPE_SECRET_KEY and price IDs on Vercel.')
+      const result = await createCheckoutSession(token, planId)
+      if (result.preview || result.stripeConfigured === false) {
+        await updateProfile(userId, { subscription_plan: planId })
+        setSubscriptionPlan(planId)
+        toastSuccess(`${planId === 'pro' ? 'Pro' : 'Plus'} plan selected (preview). Connect Stripe to enable billing.`)
+        return
+      }
+      if (result.url) window.location.href = result.url
+    } catch (err) {
+      toastError(err.message || 'Could not start checkout')
     } finally {
       setLoading(false)
     }
@@ -151,8 +165,8 @@ export default function Settings() {
   }
 
   const tabs = [
-    { id: 'profile', label: 'Profile', icon: User },
     { id: 'subscription', label: 'Subscription', icon: CreditCard },
+    { id: 'profile', label: 'Profile', icon: User },
   ]
 
   return (
@@ -270,6 +284,7 @@ export default function Settings() {
           <SubscriptionPlans
             currentPlan={subscriptionPlan}
             loading={loading}
+            stripeConfigured={stripeConfigured}
             onSelectPlan={handleSelectPlan}
             onManageBilling={handleManageBilling}
             hasStripeCustomer={Boolean(stripeCustomerId)}

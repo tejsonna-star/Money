@@ -54,8 +54,11 @@ export async function createCheckoutSession(token, plan = 'pro') {
     },
     body: JSON.stringify({ plan }),
   })
-  if (!res.ok) throw new Error('Failed to create checkout session')
-  return res.json()
+  const json = await res.json().catch(() => ({}))
+  if (!res.ok) {
+    throw new Error(json.error || 'Failed to create checkout session')
+  }
+  return json
 }
 
 export async function createPortalSession(token) {

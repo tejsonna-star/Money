@@ -57,14 +57,20 @@ async function getOrCreateCustomer(userId, email) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  const body = await readBody(req)
+  const plan = body?.plan === 'plus' ? 'plus' : 'pro'
+
   const stripe = getStripe()
   if (!stripe) {
-    return res.status(503).json({ error: 'Stripe not configured' })
+    return res.status(200).json({
+      stripeConfigured: false,
+      preview: true,
+      plan,
+      message: 'Stripe not configured yet. Add keys on Vercel to enable checkout.',
+    })
   }
 
   try {
-    const body = await readBody(req)
-    const plan = body?.plan === 'plus' ? 'plus' : 'pro'
     const priceId = getPriceId(plan)
     if (!priceId) {
       return res.status(503).json({ error: 'Stripe price not configured for this plan' })
@@ -88,7 +94,7 @@ export default async function handler(req, res) {
       metadata: { supabase_user_id: user.id, plan },
     })
 
-    res.status(200).json({ url: session.url, plan })
+    res.status(200).json({ url: session.url, plan, stripeConfigured: true })
   } catch (err) {
     console.error('Checkout error:', err.message)
     sendError(res, err)
