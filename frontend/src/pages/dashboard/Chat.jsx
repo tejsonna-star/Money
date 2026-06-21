@@ -85,7 +85,7 @@ export default function Chat() {
 
   return (
     <DashboardLayout title="AI Chat" subtitle="Ask questions about your finances and career">
-      <PlanGate feature={FEATURES.AI_CHAT} title="Unlimited AI chat requires Pro">
+      <PlanGate feature={FEATURES.AI_CHAT} title="Unlimited AI chat requires Pro" className="w-full">
         <ChatBox messages={messages} onSend={handleSend} loading={loading} />
       </PlanGate>
     </DashboardLayout>

@@ -216,7 +216,7 @@ export default function Debt() {
           </div>
 
           <div className="mt-6">
-            <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI debt insights require Plus">
+            <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI debt insights require Plus" className="w-full">
             <AIInsight
               title="AI Debt Recommendation"
               content={aiAdvice}

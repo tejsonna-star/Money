@@ -8,7 +8,7 @@ import {
 } from '../../lib/supabase'
 import { exportUserDataJson, exportTransactionsCsv } from '../../lib/financeUtils'
 import { FEATURES } from '../../lib/planGating'
-import PlanGate from '../../components/PlanGate'
+import { PlanLockedButton } from '../../components/PlanGate'
 import { usePlan } from '../../context/PlanContext'
 import { toastSuccess, toastError } from '../../lib/toast'
 
@@ -107,9 +107,9 @@ export default function Settings() {
               a.click()
               toastSuccess('JSON exported')
             }}>Export JSON</Button>
-            <PlanGate feature={FEATURES.CSV_EXPORT} title="CSV export requires Plus" className="inline-block">
+            {hasFeature(FEATURES.CSV_EXPORT) ? (
               <Button variant="secondary" size="sm" onClick={async () => {
-                if (!userId || !hasFeature(FEATURES.CSV_EXPORT)) return
+                if (!userId) return
                 const tx = await getTransactions(userId)
                 const blob = new Blob([exportTransactionsCsv(tx)], { type: 'text/csv' })
                 const a = document.createElement('a')
@@ -118,7 +118,9 @@ export default function Settings() {
                 a.click()
                 toastSuccess('CSV exported')
               }}>Export CSV</Button>
-            </PlanGate>
+            ) : (
+              <PlanLockedButton feature={FEATURES.CSV_EXPORT} label="Export CSV" />
+            )}
           </div>
         </Card>
 

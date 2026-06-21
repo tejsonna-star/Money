@@ -61,7 +61,7 @@ function SidebarNav({ onNavigate }) {
               end={end}
               onClick={onNavigate}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
+                `flex items-center gap-3 overflow-visible rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
                   isActive
                     ? 'bg-accent/10 text-accent'
                     : 'text-muted hover:bg-card hover:text-text'

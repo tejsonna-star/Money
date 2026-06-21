@@ -204,7 +204,7 @@ export default function Career() {
 
   return (
     <DashboardLayout title="Career Coach" subtitle="Know your worth and plan your next move">
-      <PlanGate feature={FEATURES.CAREER_COACH} title="Career Coach requires Pro">
+      <PlanGate feature={FEATURES.CAREER_COACH} title="Career Coach requires Pro" className="w-full">
       <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
         {[
           { id: 'raise', label: 'Raise Negotiator' },

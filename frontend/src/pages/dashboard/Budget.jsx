@@ -194,14 +194,14 @@ export default function Budget() {
 
       {view === 'monthly' ? (
         <>
-          <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-2">
-            <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Spending charts require Plus">
+          <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-2 lg:items-stretch">
+            <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Spending charts require Plus" className="h-full">
               <PageSection title="Spending by Category" className="min-w-0">
                 <DonutChart data={chartData} size={220} />
                 <CategoryLegend data={chartData} />
               </PageSection>
             </PlanGate>
-            <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI budget insights require Plus">
+            <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI budget insights require Plus" className="h-full">
               <AIInsight title="Budget Insight" content={insight} loading={insightLoading} onRefresh={fetchInsight} />
             </PlanGate>
           </div>
@@ -238,8 +238,8 @@ export default function Budget() {
           </PageSection>
         </>
       ) : (
-        <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Annual budget view requires Plus">
-        <PageSection title="Annual budget (12 months)" className="mt-6">
+        <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Annual budget view requires Plus" className="mt-6">
+        <PageSection title="Annual budget (12 months)">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px] text-sm">
               <thead>

@@ -293,12 +293,19 @@ export function monthlyIncome(salary, payFrequency) {
 
 export function formatCurrency(amount, currency = 'USD') {
   const code = currency || 'USD'
+  const value = Number(amount)
+  const safe = Number.isFinite(value) ? value : 0
   const noDecimals = ['JPY', 'KRW'].includes(code)
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: code,
-    maximumFractionDigits: noDecimals ? 0 : 0,
-  }).format(amount || 0)
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: code,
+      maximumFractionDigits: noDecimals ? 0 : 2,
+      minimumFractionDigits: noDecimals ? 0 : 2,
+    }).format(safe)
+  } catch {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(safe)
+  }
 }
 
 export function formatPercent(value) {
@@ -379,28 +386,37 @@ export async function getGamification(userId) {
 }
 
 export async function upsertGamification(userId, updates) {
-  const { data, error } = await supabase.from('user_gamification').upsert({ user_id: userId, ...updates, updated_at: new Date().toISOString() }).select().single()
-  if (error) throw new Error(error.message)
-  return data
+  try {
+    const { data, error } = await supabase.from('user_gamification').upsert({ user_id: userId, ...updates, updated_at: new Date().toISOString() }).select().single()
+    if (error) return null
+    return data
+  } catch {
+    return null
+  }
 }
 
 export async function recordActivity(userId) {
-  const today = new Date().toISOString().slice(0, 10)
-  const g = await getGamification(userId)
-  const last = g?.last_activity_date
-  let streak = g?.streak_days || 0
-  if (last !== today) {
-    const yesterday = new Date()
-    yesterday.setDate(yesterday.getDate() - 1)
-    const yStr = yesterday.toISOString().slice(0, 10)
-    streak = last === yStr ? streak + 1 : 1
-    await upsertGamification(userId, { streak_days: streak, last_activity_date: today })
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    const g = await getGamification(userId)
+    const last = g?.last_activity_date
+    let streak = g?.streak_days || 0
+    if (last !== today) {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yStr = yesterday.toISOString().slice(0, 10)
+      streak = last === yStr ? streak + 1 : 1
+      await upsertGamification(userId, { streak_days: streak, last_activity_date: today })
+    }
+    return streak
+  } catch {
+    return 0
   }
-  return streak
 }
 
 // --- Recurring transactions ---
 export async function processRecurringTransactions(userId) {
+  try {
   const { data: templates } = await supabase
     .from('transactions')
     .select('*')
@@ -433,6 +449,9 @@ export async function processRecurringTransactions(userId) {
       account_id: tpl.account_id,
     })
     await supabase.from('transactions').update({ last_recurred_at: today.toISOString().slice(0, 10) }).eq('id', tpl.id)
+  }
+  } catch {
+    // Recurring columns may not exist yet — skip silently
   }
 }
 

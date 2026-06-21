@@ -99,8 +99,8 @@ export default function Insights() {
 
   return (
     <DashboardLayout title="Insights" subtitle="AI-powered analysis of your finances">
-      <div className="grid gap-6 lg:grid-cols-2">
-        <PlanGate feature={FEATURES.AI_INSIGHTS} title="Monthly reports require Plus">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
+        <PlanGate feature={FEATURES.AI_INSIGHTS} title="Monthly reports require Plus" className="h-full">
         <PageSection
           title="Monthly financial report"
           action={<Button size="sm" onClick={generateMonthlyReport} disabled={loading}>Generate</Button>}
@@ -109,7 +109,7 @@ export default function Insights() {
         </PageSection>
         </PlanGate>
 
-        <PlanGate feature={FEATURES.WHAT_IF} title="What-if scenarios require Pro">
+        <PlanGate feature={FEATURES.WHAT_IF} title="What-if scenarios require Pro" className="h-full">
         <PageSection title="What-if scenarios">
           <p className="mb-3 text-sm text-muted">See how cutting spending affects your goals.</p>
           <div className="flex flex-wrap gap-2">
@@ -122,8 +122,8 @@ export default function Insights() {
         </PlanGate>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <PlanGate feature={FEATURES.ANOMALY_ALERTS} title="Anomaly alerts require Pro">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-stretch">
+        <PlanGate feature={FEATURES.ANOMALY_ALERTS} title="Anomaly alerts require Pro" className="h-full">
         <PageSection title="Spending anomalies">
           {!anomalies.length ? (
             <p className="text-sm text-muted">No unusual transactions detected.</p>
@@ -143,7 +143,7 @@ export default function Insights() {
         </PageSection>
         </PlanGate>
 
-        <PlanGate feature={FEATURES.NET_WORTH_PREDICTION} title="Net worth predictions require Pro">
+        <PlanGate feature={FEATURES.NET_WORTH_PREDICTION} title="Net worth predictions require Pro" className="h-full">
         <PageSection title="Net worth trend prediction">
           {prediction ? (
             <>

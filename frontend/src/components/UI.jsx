@@ -29,7 +29,7 @@ export function StatCard({ label, value, sub, trend, icon: Icon, loading = false
       {loading ? (
         <Skeleton className="mt-3 h-9 w-32" />
       ) : (
-        <p className="mt-2 font-heading text-3xl font-bold tracking-tight">{value}</p>
+        <p className="mt-2 font-heading text-3xl font-bold tracking-tight">{value ?? '$0.00'}</p>
       )}
       {sub && !loading && <p className={`mt-1 text-sm ${trendColor}`}>{sub}</p>}
     </Card>

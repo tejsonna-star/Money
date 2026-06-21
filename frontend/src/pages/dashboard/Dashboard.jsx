@@ -25,7 +25,7 @@ import { computeNetWorthFromAccounts, calculateHealthScore, computeBadges } from
 
 export default function Dashboard() {
   useKeyboardShortcuts()
-  const { hasFeature } = usePlan()
+  const { hasFeature, loading: planLoading } = usePlan()
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [accounts, setAccounts] = useState([])
@@ -47,29 +47,32 @@ export default function Dashboard() {
 
   useEffect(() => {
     async function load() {
-      const session = await getSession()
-      if (!session) return
-      setToken(session.access_token)
-      const uid = session.user.id
-      await processRecurringTransactions(uid)
-      const streak = await recordActivity(uid)
-      const [p, accts, d, e, allTx, recentTx, history, g] = await Promise.all([
-        getProfile(uid), getAccounts(uid), getDebts(uid), getExpenses(uid),
-        getTransactions(uid), getTransactions(uid, 5), getNetWorthHistory(uid), getGamification(uid),
-      ])
-      setProfile(p)
-      setAccounts(accts)
-      setDebts(d)
-      setExpenses(e)
-      setTransactions(recentTx)
-      setAllTransactions(allTx)
-      setNetWorthHistory(history)
-      setGamification(g || { streak_days: streak, badges: [], health_score: 50 })
-      setLastUpdated(new Date())
-      setLoading(false)
+      try {
+        const session = await getSession()
+        if (!session) return
+        setToken(session.access_token)
+        const uid = session.user.id
+        await processRecurringTransactions(uid)
+        const streak = await recordActivity(uid)
+        const [p, accts, d, e, allTx, recentTx, history, g] = await Promise.all([
+          getProfile(uid), getAccounts(uid), getDebts(uid), getExpenses(uid),
+          getTransactions(uid), getTransactions(uid, 5), getNetWorthHistory(uid), getGamification(uid),
+        ])
+        setProfile(p)
+        setAccounts(accts)
+        setDebts(d)
+        setExpenses(e)
+        setTransactions(recentTx)
+        setAllTransactions(allTx)
+        setNetWorthHistory(history)
+        setGamification(g || { streak_days: streak, badges: [], health_score: 50 })
+        setLastUpdated(new Date())
 
-      const nw = accts.length ? computeNetWorthFromAccounts(accts, d) : (Number(p?.savings) || 0) - d.reduce((s, x) => s + Number(x.balance), 0)
-      recordNetWorthSnapshot(uid, nw)
+        const nw = accts.length ? computeNetWorthFromAccounts(accts, d) : (Number(p?.savings) || 0) - d.reduce((s, x) => s + Number(x.balance), 0)
+        recordNetWorthSnapshot(uid, nw)
+      } finally {
+        setLoading(false)
+      }
     }
     load()
   }, [])
@@ -96,7 +99,7 @@ export default function Dashboard() {
         label: new Date(s.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         netWorth: Number(s.net_worth),
       }))
-    : [{ label: 'Today', netWorth }]
+    : [{ label: 'Today', netWorth: netWorth || 0 }]
 
   async function fetchInsight() {
     if (!token || !hasFeature(FEATURES.AI_INSIGHTS)) return
@@ -126,11 +129,11 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (profile && token && !loading) {
+    if (profile && token && !loading && !planLoading) {
       fetchInsight()
       fetchWeeklySummary()
     }
-  }, [profile, token, loading])
+  }, [profile, token, loading, planLoading])
 
   const challenge = MONTHLY_CHALLENGES[0]
 
@@ -155,7 +158,7 @@ export default function Dashboard() {
           onCompleteChallenge={() => navigate('/dashboard/transactions')}
         />
         <div className="lg:col-span-2">
-          <PlanGate feature={FEATURES.WEEKLY_SUMMARY} title="Weekly summary requires Plus">
+          <PlanGate feature={FEATURES.WEEKLY_SUMMARY} title="Weekly summary requires Plus" className="h-full">
             <WeeklySummaryCard summary={weeklySummary} loading={summaryLoading} />
           </PlanGate>
         </div>
@@ -183,16 +186,16 @@ export default function Dashboard() {
         )}
       </PageSection>
 
-      <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Spending charts require Plus">
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Spending charts require Plus" className="mt-6">
+      <div className="grid gap-6 lg:grid-cols-2">
         <PageSection title="Spending over time">{loading ? <Skeleton className="h-[220px]" /> : <LineTrendChart data={spendingTrend} dataKey="spending" color="#FF4D6A" />}</PageSection>
         <PageSection title="Net worth history">{loading ? <Skeleton className="h-[220px]" /> : <MultiLineTrendChart data={netWorthChart} />}</PageSection>
       </div>
       </PlanGate>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2 lg:items-stretch">
         <PageSection title="Debt payoff"><ProgressBar value={debtProgress} /><p className="mt-2 text-xs text-muted">{totalDebt > 0 ? formatCurrency(totalDebt) + ' remaining' : 'Debt free'}</p></PageSection>
-        <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI insights require Plus">
+        <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI insights require Plus" className="h-full">
           <AIInsight title="Your next move" content={insight} loading={insightLoading} onRefresh={fetchInsight} actionLabel="Insights" onAction={() => navigate('/dashboard/insights')} prominent />
         </PlanGate>
       </div>

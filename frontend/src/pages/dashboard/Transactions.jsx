@@ -10,7 +10,7 @@ import {
 } from '../../lib/supabase'
 import { exportTransactionsCsv } from '../../lib/financeUtils'
 import { FEATURES } from '../../lib/planGating'
-import PlanGate, { PlanLockIcon } from '../../components/PlanGate'
+import { PlanLockIcon, PlanLockedButton } from '../../components/PlanGate'
 import { usePlan } from '../../context/PlanContext'
 import { toastSuccess, toastError } from '../../lib/toast'
 
@@ -116,9 +116,11 @@ export default function Transactions() {
         title="Transaction history"
         action={
           <div className="flex flex-wrap gap-2">
-            <PlanGate feature={FEATURES.CSV_EXPORT} title="CSV export requires Plus" className="inline-block">
+            {hasFeature(FEATURES.CSV_EXPORT) ? (
               <Button size="sm" variant="secondary" className="gap-1" onClick={exportCsv}><Download className="h-4 w-4" />Export CSV</Button>
-            </PlanGate>
+            ) : (
+              <PlanLockedButton feature={FEATURES.CSV_EXPORT} label="Export CSV" className="inline-flex" />
+            )}
             <Button size="sm" className="gap-1" onClick={() => setShowForm(!showForm)}><Plus className="h-4 w-4" />{showForm ? 'Cancel' : 'Add'}</Button>
           </div>
         }
