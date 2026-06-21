@@ -25,6 +25,13 @@ const EXPENSE_CATEGORIES = [
 
 const emptyDebt = () => ({ name: '', balance: '', interest_rate: '', minimum_payment: '' })
 
+function friendlyDbError(message) {
+  if (message?.includes('profiles') && message?.includes('schema cache')) {
+    return 'Database tables are missing. In Supabase go to SQL Editor, run the script in supabase/schema.sql from your repo, then try again.'
+  }
+  return message
+}
+
 export default function Onboarding() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
@@ -135,7 +142,7 @@ export default function Onboarding() {
       await saveDebtsAndExpenses()
       goToDashboard()
     } catch (err) {
-      setError(err.message || 'Could not save. Try Skip for now or check Supabase is set up.')
+      setError(friendlyDbError(err.message) || 'Could not save. Try Skip for now or set up Supabase tables.')
       setLoading(false)
     }
   }
@@ -148,7 +155,7 @@ export default function Onboarding() {
       await saveProfile(true)
       goToDashboard()
     } catch (err) {
-      setError(err.message || 'Could not skip. Check Supabase env vars and run schema.sql.')
+      setError(friendlyDbError(err.message) || 'Could not skip. Run supabase/schema.sql in Supabase SQL Editor.')
       setLoading(false)
     }
   }
