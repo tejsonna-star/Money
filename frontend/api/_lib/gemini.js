@@ -1,11 +1,14 @@
 const SYSTEM_PROMPT =
   'You are a personal finance and career advisor for Upshift. Be specific, practical, and direct. No fluff. Always base advice on the user\'s actual numbers. Use plain English. Format currency as USD.'
 
-export async function callGemini(prompt) {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
+const MODELS = [
+  process.env.GEMINI_MODEL,
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+].filter(Boolean)
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash'
+async function requestGemini(model, apiKey, prompt) {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
     {
@@ -21,13 +24,36 @@ export async function callGemini(prompt) {
 
   if (!response.ok) {
     const err = await response.text()
-    throw new Error(`Gemini API error: ${err}`)
+    const error = new Error(`Gemini (${model}): ${err.slice(0, 200)}`)
+    error.status = response.status
+    throw error
   }
 
   const data = await response.json()
   const text = data.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) throw new Error('Gemini returned no content')
   return text
+}
+
+export async function callGemini(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY not set on Vercel — add it under Environment Variables and redeploy')
+  }
+
+  const models = [...new Set(MODELS)]
+  let lastError
+
+  for (const model of models) {
+    try {
+      return await requestGemini(model, apiKey, prompt)
+    } catch (err) {
+      lastError = err
+      if (err.status !== 404 && err.status !== 400) throw err
+    }
+  }
+
+  throw lastError || new Error('All Gemini models failed')
 }
 
 export function buildPrompt(type, data) {
@@ -81,7 +107,7 @@ Current monthly income: $${Math.round(data.income)}`
     case 'dashboard_insight':
       return `Give a 1-2 sentence "next move" insight for this user's dashboard.
 
-Career goal: ${data.careerGoal}
+Career goal: ${data.careerGoal || 'not set'}
 Monthly income: $${Math.round(data.income)}
 Total debt: $${Math.round(data.totalDebt)}
 Monthly expenses: $${Math.round(data.totalExpenses)}

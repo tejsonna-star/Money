@@ -62,8 +62,8 @@ export default function Dashboard() {
         debtCount: debts.length,
       }, token)
       setInsight(result)
-    } catch {
-      setInsight('Connect your API keys to get personalized AI insights based on your financial data.')
+    } catch (err) {
+      setInsight(err.message || 'AI request failed. Check GEMINI_API_KEY and SUPABASE_SERVICE_KEY on Vercel, then redeploy.')
     } finally {
       setInsightLoading(false)
     }

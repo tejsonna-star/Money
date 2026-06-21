@@ -312,6 +312,9 @@ export default function Onboarding() {
         </div>
 
         <div className="rounded-xl border border-border bg-card p-8">
+          <p className="mb-4 rounded-lg border border-border bg-surface px-4 py-3 text-sm text-muted">
+            Free plan included · all answers can be changed later in <strong className="text-text">Settings</strong>
+          </p>
           <p className="text-sm text-muted">{current.subtitle}</p>
           <h1 className="mt-1 font-heading text-2xl font-bold">{current.title}</h1>
           <div className="mt-6">{current.content}</div>

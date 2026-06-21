@@ -5,9 +5,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
+    const body = req.body && typeof req.body === 'object' ? req.body : {}
     const { user } = await requireAuth(req)
-
-    const { type, data } = req.body
+    const { type, data } = body
     if (!type || !data) {
       return res.status(400).json({ error: 'type and data required' })
     }
