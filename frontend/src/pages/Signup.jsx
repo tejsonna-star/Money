@@ -40,6 +40,7 @@ export default function Signup() {
         await supabase.from('profiles').upsert({
           id: data.user.id,
           subscription_status: 'free',
+          subscription_plan: 'free',
           onboarding_complete: false,
         })
         window.location.href = '/onboarding'
@@ -119,7 +120,13 @@ export default function Signup() {
             {loading ? 'Creating account...' : 'Create free account'}
           </Button>
           <p className="mt-4 text-center text-xs text-muted">
-            Upgrade to Pro anytime in Settings — $15/mo.
+            By creating an account, you agree to our{' '}
+            <Link to="/terms" className="text-accent hover:underline">Terms of Service</Link>
+            {' '}and{' '}
+            <Link to="/privacy" className="text-accent hover:underline">Privacy Policy</Link>.
+          </p>
+          <p className="mt-2 text-center text-xs text-muted">
+            Upgrade to Plus or Pro anytime in Subscription.
           </p>
           <p className="mt-4 text-center text-sm text-muted">
             Already have an account?{' '}

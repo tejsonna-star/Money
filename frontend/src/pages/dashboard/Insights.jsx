@@ -10,9 +10,13 @@ import {
 } from '../../lib/supabase'
 import { callAI } from '../../lib/api'
 import { detectAnomalies, predictNetWorth } from '../../lib/financeUtils'
+import { FEATURES } from '../../lib/planGating'
+import PlanGate from '../../components/PlanGate'
+import { usePlan } from '../../context/PlanContext'
 import { toastError } from '../../lib/toast'
 
 export default function Insights() {
+  const { hasFeature } = usePlan()
   const [profile, setProfile] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [history, setHistory] = useState([])
@@ -44,7 +48,7 @@ export default function Insights() {
   const income = monthlyIncome(profile?.salary, profile?.pay_frequency)
 
   async function generateMonthlyReport() {
-    if (!token) return
+    if (!token || !hasFeature(FEATURES.AI_INSIGHTS)) return
     setLoading(true)
     try {
       const expenses = await getExpenses(profile.id)
@@ -67,7 +71,7 @@ export default function Insights() {
   }
 
   async function runWhatIf() {
-    if (!token) return
+    if (!token || !hasFeature(FEATURES.WHAT_IF)) return
     setLoading(true)
     try {
       const result = await callAI('what_if', {
@@ -96,13 +100,16 @@ export default function Insights() {
   return (
     <DashboardLayout title="Insights" subtitle="AI-powered analysis of your finances">
       <div className="grid gap-6 lg:grid-cols-2">
+        <PlanGate feature={FEATURES.AI_INSIGHTS} title="Monthly reports require Plus">
         <PageSection
           title="Monthly financial report"
           action={<Button size="sm" onClick={generateMonthlyReport} disabled={loading}>Generate</Button>}
         >
           <AIInsight title="" content={monthlyReport} loading={loading} />
         </PageSection>
+        </PlanGate>
 
+        <PlanGate feature={FEATURES.WHAT_IF} title="What-if scenarios require Pro">
         <PageSection title="What-if scenarios">
           <p className="mb-3 text-sm text-muted">See how cutting spending affects your goals.</p>
           <div className="flex flex-wrap gap-2">
@@ -112,9 +119,11 @@ export default function Insights() {
           </div>
           {whatIfResult && <p className="mt-4 text-sm leading-relaxed text-text/90 whitespace-pre-wrap">{whatIfResult}</p>}
         </PageSection>
+        </PlanGate>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <PlanGate feature={FEATURES.ANOMALY_ALERTS} title="Anomaly alerts require Pro">
         <PageSection title="Spending anomalies">
           {!anomalies.length ? (
             <p className="text-sm text-muted">No unusual transactions detected.</p>
@@ -132,7 +141,9 @@ export default function Insights() {
             </ul>
           )}
         </PageSection>
+        </PlanGate>
 
+        <PlanGate feature={FEATURES.NET_WORTH_PREDICTION} title="Net worth predictions require Pro">
         <PageSection title="Net worth trend prediction">
           {prediction ? (
             <>
@@ -146,6 +157,7 @@ export default function Insights() {
             <p className="text-sm text-muted">Add more net worth snapshots to see predictions.</p>
           )}
         </PageSection>
+        </PlanGate>
       </div>
     </DashboardLayout>
   )

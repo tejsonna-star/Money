@@ -9,11 +9,15 @@ import {
   EXPENSE_CATEGORIES, formatCurrency, formatDate,
 } from '../../lib/supabase'
 import { exportTransactionsCsv } from '../../lib/financeUtils'
+import { FEATURES } from '../../lib/planGating'
+import PlanGate, { PlanLockIcon } from '../../components/PlanGate'
+import { usePlan } from '../../context/PlanContext'
 import { toastSuccess, toastError } from '../../lib/toast'
 
 const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Bonus', 'Investment', 'Other']
 
 export default function Transactions() {
+  const { hasFeature } = usePlan()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState(null)
@@ -58,17 +62,18 @@ export default function Transactions() {
     e.preventDefault()
     if (!userId || !form.amount) return
     try {
+      const recurring = hasFeature(FEATURES.RECURRING_TRANSACTIONS) && form.is_recurring
       if (showSplit && splits.length >= 2) {
         await addTransactionWithSplits(userId, {
           amount: Number(form.amount), category: 'Split', type: form.type,
           transaction_date: form.transaction_date, note: form.note || 'Split transaction',
-          is_recurring: form.is_recurring, recurring_frequency: form.is_recurring ? form.recurring_frequency : null,
+          is_recurring: recurring, recurring_frequency: recurring ? form.recurring_frequency : null,
         }, splits.filter((s) => s.amount))
       } else {
         await addTransaction(userId, {
           amount: Number(form.amount), category: form.category, type: form.type,
           transaction_date: form.transaction_date, note: form.note || null,
-          is_recurring: form.is_recurring, recurring_frequency: form.is_recurring ? form.recurring_frequency : null,
+          is_recurring: recurring, recurring_frequency: recurring ? form.recurring_frequency : null,
         })
       }
       await updateProfile(userId, { onboarding_checklist: { transaction: true } })
@@ -82,6 +87,7 @@ export default function Transactions() {
   }
 
   function exportCsv() {
+    if (!hasFeature(FEATURES.CSV_EXPORT)) return
     const csv = exportTransactionsCsv(transactions)
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -110,7 +116,9 @@ export default function Transactions() {
         title="Transaction history"
         action={
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" className="gap-1" onClick={exportCsv}><Download className="h-4 w-4" />Export CSV</Button>
+            <PlanGate feature={FEATURES.CSV_EXPORT} title="CSV export requires Plus" className="inline-block">
+              <Button size="sm" variant="secondary" className="gap-1" onClick={exportCsv}><Download className="h-4 w-4" />Export CSV</Button>
+            </PlanGate>
             <Button size="sm" className="gap-1" onClick={() => setShowForm(!showForm)}><Plus className="h-4 w-4" />{showForm ? 'Cancel' : 'Add'}</Button>
           </div>
         }
@@ -144,11 +152,17 @@ export default function Transactions() {
               <Input label="Date" type="date" value={form.transaction_date} onChange={(e) => setForm({ ...form, transaction_date: e.target.value })} />
               <Input label="Note" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className="sm:col-span-2" />
             </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={form.is_recurring} onChange={(e) => setForm({ ...form, is_recurring: e.target.checked })} />
+            <label className={`flex items-center gap-2 text-sm ${!hasFeature(FEATURES.RECURRING_TRANSACTIONS) ? 'opacity-60' : ''}`}>
+              <input
+                type="checkbox"
+                checked={form.is_recurring}
+                disabled={!hasFeature(FEATURES.RECURRING_TRANSACTIONS)}
+                onChange={(e) => setForm({ ...form, is_recurring: e.target.checked })}
+              />
               Recurring transaction
+              {!hasFeature(FEATURES.RECURRING_TRANSACTIONS) && <PlanLockIcon feature={FEATURES.RECURRING_TRANSACTIONS} />}
             </label>
-            {form.is_recurring && (
+            {form.is_recurring && hasFeature(FEATURES.RECURRING_TRANSACTIONS) && (
               <Select label="Frequency" value={form.recurring_frequency} onChange={(e) => setForm({ ...form, recurring_frequency: e.target.value })}>
                 <option value="weekly">Weekly</option>
                 <option value="monthly">Monthly</option>

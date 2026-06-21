@@ -273,6 +273,8 @@ export default function Landing() {
             <a href="#features" className="transition-colors hover:text-text">Features</a>
             <a href="#pricing" className="transition-colors hover:text-text">Pricing</a>
             <Link to="/login" className="transition-colors hover:text-text">Log in</Link>
+            <Link to="/privacy" className="transition-colors hover:text-text">Privacy</Link>
+            <Link to="/terms" className="transition-colors hover:text-text">Terms</Link>
           </div>
           <p className="text-sm text-muted">© {new Date().getFullYear()} Upshift. All rights reserved.</p>
         </div>

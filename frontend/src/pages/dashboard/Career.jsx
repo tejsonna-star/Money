@@ -15,6 +15,8 @@ import {
 import { callAI, sendChatMessage } from '../../lib/api'
 import { getSideIncome, addSideIncome, deleteSideIncome } from '../../lib/supabase'
 import { toastSuccess } from '../../lib/toast'
+import PlanGate from '../../components/PlanGate'
+import { FEATURES } from '../../lib/planGating'
 
 export default function Career() {
   const [tab, setTab] = useState('raise')
@@ -202,6 +204,7 @@ export default function Career() {
 
   return (
     <DashboardLayout title="Career Coach" subtitle="Know your worth and plan your next move">
+      <PlanGate feature={FEATURES.CAREER_COACH} title="Career Coach requires Pro">
       <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
         {[
           { id: 'raise', label: 'Raise Negotiator' },
@@ -478,6 +481,7 @@ export default function Career() {
           />
         </div>
       )}
+      </PlanGate>
     </DashboardLayout>
   )
 }

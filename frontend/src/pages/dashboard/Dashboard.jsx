@@ -11,6 +11,9 @@ import ChangelogModal from '../../components/ChangelogModal'
 import { LineTrendChart, MultiLineTrendChart } from '../../components/Chart'
 import { useKeyboardShortcuts, KeyboardHints } from '../../lib/keyboardShortcuts.jsx'
 import { MONTHLY_CHALLENGES } from '../../lib/constants'
+import { FEATURES } from '../../lib/planGating'
+import PlanGate from '../../components/PlanGate'
+import { usePlan } from '../../context/PlanContext'
 import {
   getSession, getProfile, getDebts, getExpenses, getTransactions, getAccounts,
   getNetWorthHistory, recordNetWorthSnapshot, getSpendingOverTime, getGamification,
@@ -22,6 +25,7 @@ import { computeNetWorthFromAccounts, calculateHealthScore, computeBadges } from
 
 export default function Dashboard() {
   useKeyboardShortcuts()
+  const { hasFeature } = usePlan()
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [accounts, setAccounts] = useState([])
@@ -95,7 +99,7 @@ export default function Dashboard() {
     : [{ label: 'Today', netWorth }]
 
   async function fetchInsight() {
-    if (!token) return
+    if (!token || !hasFeature(FEATURES.AI_INSIGHTS)) return
     setInsightLoading(true)
     try {
       setInsight(await callAI('dashboard_insight', { careerGoal: profile?.career_goal, totalDebt, totalExpenses, income, cashFlow, debtCount: debts.length }, token))
@@ -107,7 +111,7 @@ export default function Dashboard() {
   }
 
   async function fetchWeeklySummary() {
-    if (!token || profile?.notification_prefs?.weekly_summary === false) return
+    if (!token || !hasFeature(FEATURES.WEEKLY_SUMMARY) || profile?.notification_prefs?.weekly_summary === false) return
     setSummaryLoading(true)
     try {
       const weekAgo = new Date()
@@ -151,7 +155,9 @@ export default function Dashboard() {
           onCompleteChallenge={() => navigate('/dashboard/transactions')}
         />
         <div className="lg:col-span-2">
-          <WeeklySummaryCard summary={weeklySummary} loading={summaryLoading} />
+          <PlanGate feature={FEATURES.WEEKLY_SUMMARY} title="Weekly summary requires Plus">
+            <WeeklySummaryCard summary={weeklySummary} loading={summaryLoading} />
+          </PlanGate>
         </div>
       </div>
 
@@ -177,14 +183,18 @@ export default function Dashboard() {
         )}
       </PageSection>
 
+      <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Spending charts require Plus">
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <PageSection title="Spending over time">{loading ? <Skeleton className="h-[220px]" /> : <LineTrendChart data={spendingTrend} dataKey="spending" color="#FF4D6A" />}</PageSection>
         <PageSection title="Net worth history">{loading ? <Skeleton className="h-[220px]" /> : <MultiLineTrendChart data={netWorthChart} />}</PageSection>
       </div>
+      </PlanGate>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <PageSection title="Debt payoff"><ProgressBar value={debtProgress} /><p className="mt-2 text-xs text-muted">{totalDebt > 0 ? formatCurrency(totalDebt) + ' remaining' : 'Debt free'}</p></PageSection>
-        <AIInsight title="Your next move" content={insight} loading={insightLoading} onRefresh={fetchInsight} actionLabel="Insights" onAction={() => navigate('/dashboard/insights')} prominent />
+        <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI insights require Plus">
+          <AIInsight title="Your next move" content={insight} loading={insightLoading} onRefresh={fetchInsight} actionLabel="Insights" onAction={() => navigate('/dashboard/insights')} prominent />
+        </PlanGate>
       </div>
 
       <PageSection title="Recent transactions" className="mt-6" action={<Link to="/dashboard/transactions" className="flex items-center gap-1 text-sm text-accent hover:underline">View all <ArrowRight className="h-3.5 w-3.5" /></Link>}>

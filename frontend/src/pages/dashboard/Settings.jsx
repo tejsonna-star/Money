@@ -7,9 +7,13 @@ import {
   getAccounts, getTransactions, getGoals, getDebts,
 } from '../../lib/supabase'
 import { exportUserDataJson, exportTransactionsCsv } from '../../lib/financeUtils'
+import { FEATURES } from '../../lib/planGating'
+import PlanGate from '../../components/PlanGate'
+import { usePlan } from '../../context/PlanContext'
 import { toastSuccess, toastError } from '../../lib/toast'
 
 export default function Settings() {
+  const { hasFeature } = usePlan()
   const [userId, setUserId] = useState(null)
   const [budgetAlerts, setBudgetAlerts] = useState(true)
   const [weeklySummary, setWeeklySummary] = useState(true)
@@ -76,9 +80,10 @@ export default function Settings() {
                   setWeeklySummary(e.target.checked)
                   saveNotifications(budgetAlerts, e.target.checked)
                 }}
-                disabled={saving}
+                disabled={saving || !hasFeature(FEATURES.WEEKLY_SUMMARY)}
               />
               Weekly summary on dashboard
+              {!hasFeature(FEATURES.WEEKLY_SUMMARY) && <span className="text-xs text-muted">(Plus)</span>}
             </label>
           </div>
         </Card>
@@ -102,16 +107,18 @@ export default function Settings() {
               a.click()
               toastSuccess('JSON exported')
             }}>Export JSON</Button>
-            <Button variant="secondary" size="sm" onClick={async () => {
-              if (!userId) return
-              const tx = await getTransactions(userId)
-              const blob = new Blob([exportTransactionsCsv(tx)], { type: 'text/csv' })
-              const a = document.createElement('a')
-              a.href = URL.createObjectURL(blob)
-              a.download = 'upshift-transactions.csv'
-              a.click()
-              toastSuccess('CSV exported')
-            }}>Export CSV</Button>
+            <PlanGate feature={FEATURES.CSV_EXPORT} title="CSV export requires Plus" className="inline-block">
+              <Button variant="secondary" size="sm" onClick={async () => {
+                if (!userId || !hasFeature(FEATURES.CSV_EXPORT)) return
+                const tx = await getTransactions(userId)
+                const blob = new Blob([exportTransactionsCsv(tx)], { type: 'text/csv' })
+                const a = document.createElement('a')
+                a.href = URL.createObjectURL(blob)
+                a.download = 'upshift-transactions.csv'
+                a.click()
+                toastSuccess('CSV exported')
+              }}>Export CSV</Button>
+            </PlanGate>
           </div>
         </Card>
 

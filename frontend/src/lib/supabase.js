@@ -175,7 +175,12 @@ export async function upsertBudgetLimit(userId, category, monthlyLimit) {
     )
     .select()
     .single()
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (error.message?.includes('budget_limits') || error.message?.includes('schema cache')) {
+      throw new Error('Budget limits table missing. Run supabase/migrations/20250621_fix_missing_schema.sql in Supabase SQL Editor.')
+    }
+    throw new Error(error.message)
+  }
   return data
 }
 
@@ -451,7 +456,12 @@ export async function addTransactionWithSplits(userId, parent, splits) {
 
 export async function updateProfile(userId, updates) {
   const { data, error } = await supabase.from('profiles').update(updates).eq('id', userId).select().single()
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (error.message?.includes('subscription_plan') || error.message?.includes('schema cache')) {
+      throw new Error('Profile schema outdated. Run supabase/migrations/20250621_fix_missing_schema.sql in Supabase SQL Editor.')
+    }
+    throw new Error(error.message)
+  }
   return data
 }
 

@@ -153,8 +153,8 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, subscription_status, onboarding_complete)
-  values (new.id, 'free', false)
+  insert into public.profiles (id, subscription_status, subscription_plan, onboarding_complete)
+  values (new.id, 'free', 'free', false)
   on conflict (id) do nothing;
   return new;
 end;

@@ -8,11 +8,15 @@ import {
   getSession, getProfile, getExpenses, getTransactions, getBudgetLimits,
   upsertBudgetLimit, getCategorySpendingData, getCategoryUsageThisMonth,
   monthlyIncome, formatCurrency, updateProfile, getBudgetSnapshots, saveBudgetSnapshot,
+  EXPENSE_CATEGORIES,
 } from '../../lib/supabase'
 import { BUDGET_TEMPLATES } from '../../lib/constants'
+import { FEATURES } from '../../lib/planGating'
 import { applyBudgetRollover } from '../../lib/financeUtils'
 import { callAI } from '../../lib/api'
 import { toastSuccess, toastError } from '../../lib/toast'
+import PlanGate from '../../components/PlanGate'
+import { usePlan } from '../../context/PlanContext'
 
 function currentMonthKey() {
   const d = new Date()
@@ -20,6 +24,7 @@ function currentMonthKey() {
 }
 
 export default function Budget() {
+  const { hasFeature } = usePlan()
   const [profile, setProfile] = useState(null)
   const [expenses, setExpenses] = useState([])
   const [transactions, setTransactions] = useState([])
@@ -72,8 +77,24 @@ export default function Budget() {
     return map
   }, [chartData])
 
+  const limitsMap = useMemo(() => {
+    const map = {}
+    budgetLimits.forEach((l) => { map[l.category] = l })
+    return map
+  }, [budgetLimits])
+
+  const allCategories = useMemo(() => {
+    const fromData = budgetLimits.map((l) => l.category)
+    const fromDrafts = Object.keys(limitDrafts)
+    return [...new Set([...EXPENSE_CATEGORIES, ...fromData, ...fromDrafts])]
+  }, [budgetLimits, limitDrafts])
+
   const rolloverData = applyBudgetRollover(
-    budgetLimits.length ? budgetLimits : Object.keys(limitDrafts).map((c) => ({ category: c, monthly_limit: limitDrafts[c] || 0, rollover_balance: 0 })),
+    allCategories.map((cat) => ({
+      category: cat,
+      monthly_limit: limitsMap[cat]?.monthly_limit ?? Number(limitDrafts[cat]) || 0,
+      rollover_balance: limitsMap[cat]?.rollover_balance ?? 0,
+    })),
     categorySpending
   )
 
@@ -92,7 +113,7 @@ export default function Budget() {
   }, [])
 
   async function fetchInsight() {
-    if (!token) return
+    if (!token || !hasFeature(FEATURES.AI_INSIGHTS)) return
     setInsightLoading(true)
     try {
       const result = await callAI('budget_insight', { income, expenses: chartData, totalExpenses, cashFlow, runway, savings, rentPct: 0 }, token)
@@ -174,11 +195,15 @@ export default function Budget() {
       {view === 'monthly' ? (
         <>
           <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-2">
-            <PageSection title="Spending by Category" className="min-w-0 overflow-hidden">
-              <DonutChart data={chartData} size={220} />
-              <CategoryLegend data={chartData} />
-            </PageSection>
-            <AIInsight title="Budget Insight" content={insight} loading={insightLoading} onRefresh={fetchInsight} />
+            <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Spending charts require Plus">
+              <PageSection title="Spending by Category" className="min-w-0">
+                <DonutChart data={chartData} size={220} />
+                <CategoryLegend data={chartData} />
+              </PageSection>
+            </PlanGate>
+            <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI budget insights require Plus">
+              <AIInsight title="Budget Insight" content={insight} loading={insightLoading} onRefresh={fetchInsight} />
+            </PlanGate>
           </div>
 
           <PageSection title="Budget templates & rollover" className="mt-6">
@@ -193,18 +218,19 @@ export default function Budget() {
           </PageSection>
 
           <PageSection title="Category budgets" className="mt-6">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <p className="mb-4 text-sm text-muted">Set a monthly limit for each category. Limits are saved to your account.</p>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {rolloverData.map((row) => (
-                <div key={row.category} className={`rounded-lg border p-4 ${row.overBudget ? 'border-danger/40 bg-danger/5' : 'border-border/60'}`}>
+                <div key={row.category} className={`min-w-0 rounded-lg border p-4 ${row.overBudget ? 'border-danger/40 bg-danger/5' : 'border-border/60'}`}>
                   <div className="flex justify-between gap-2">
-                    <span className="font-medium">{row.category}</span>
-                    <span className="text-sm text-muted">{formatCurrency(row.spent)} / {formatCurrency(row.effective)}</span>
+                    <span className="truncate font-medium">{row.category}</span>
+                    <span className="shrink-0 text-sm text-muted">{formatCurrency(row.spent)} / {formatCurrency(row.effective)}</span>
                   </div>
                   {Number(row.rollover_balance) > 0 && <p className="mt-1 text-xs text-mint">+{formatCurrency(row.rollover_balance)} rolled over</p>}
                   <div className="mt-2"><ProgressBar value={row.effective > 0 ? (row.spent / row.effective) * 100 : 0} /></div>
                   <div className="mt-3 flex gap-2">
-                    <Input type="number" placeholder="Monthly limit" value={limitDrafts[row.category] ?? ''} onChange={(e) => setLimitDrafts({ ...limitDrafts, [row.category]: e.target.value })} />
-                    <Button size="sm" variant="secondary" onClick={() => saveLimit(row.category)}>Save</Button>
+                    <Input type="number" placeholder="Monthly limit" className="min-w-0 flex-1" value={limitDrafts[row.category] ?? ''} onChange={(e) => setLimitDrafts({ ...limitDrafts, [row.category]: e.target.value })} />
+                    <Button size="sm" variant="secondary" className="shrink-0" onClick={() => saveLimit(row.category)}>Save</Button>
                   </div>
                 </div>
               ))}
@@ -212,6 +238,7 @@ export default function Budget() {
           </PageSection>
         </>
       ) : (
+        <PlanGate feature={FEATURES.SPENDING_CHARTS} title="Annual budget view requires Plus">
         <PageSection title="Annual budget (12 months)" className="mt-6">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px] text-sm">
@@ -239,6 +266,7 @@ export default function Budget() {
             </table>
           </div>
         </PageSection>
+        </PlanGate>
       )}
     </DashboardLayout>
   )

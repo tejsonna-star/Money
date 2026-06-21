@@ -4,6 +4,8 @@ import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
 import Onboarding from './pages/Onboarding'
+import Privacy from './pages/Privacy'
+import Terms from './pages/Terms'
 import ToastContainer from './components/ToastContainer'
 import { supabase, getProfile } from './lib/supabase'
 
@@ -131,6 +133,8 @@ function AnimatedRoutes() {
     <div key={location.pathname} className="animate-fade-in">
       <Routes location={location}>
         <Route path="/" element={<Landing />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/onboarding" element={<Onboarding />} />

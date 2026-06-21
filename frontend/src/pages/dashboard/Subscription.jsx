@@ -8,14 +8,7 @@ import {
 import { createCheckoutSession, createPortalSession, getSubscriptionStatus } from '../../lib/api'
 import { toastSuccess, toastError } from '../../lib/toast'
 
-function resolveCurrentPlan(profile) {
-  if (!profile) return 'free'
-  if (profile.subscription_plan && profile.subscription_plan !== 'free') {
-    return profile.subscription_plan
-  }
-  if (['active', 'trialing'].includes(profile.subscription_status)) return 'pro'
-  return 'free'
-}
+import { resolveCurrentPlan } from '../../lib/planGating'
 
 export default function Subscription() {
   const [searchParams] = useSearchParams()

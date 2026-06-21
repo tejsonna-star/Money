@@ -19,6 +19,9 @@ import {
 } from 'lucide-react'
 import { Logo } from './UI'
 import ThemeToggle from './ThemeToggle'
+import { PlanLockIcon } from './PlanGate'
+import { PlanProvider, usePlan } from '../context/PlanContext'
+import { NAV_PLAN_FEATURES } from '../lib/planGating'
 import { supabase } from '../lib/supabase'
 
 const navItems = [
@@ -38,6 +41,8 @@ const navItems = [
 
 function SidebarNav({ onNavigate }) {
   const navigate = useNavigate()
+  const { userEmail, planLabel } = usePlan()
+  const displayName = userEmail ? userEmail.split('@')[0] : 'Account'
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -47,27 +52,35 @@ function SidebarNav({ onNavigate }) {
   return (
     <>
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {navItems.map(({ to, icon: Icon, label, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
-                isActive
-                  ? 'bg-accent/10 text-accent'
-                  : 'text-muted hover:bg-card hover:text-text'
-              }`
-            }
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            {label}
-          </NavLink>
-        ))}
+        {navItems.map(({ to, icon: Icon, label, end }) => {
+          const feature = NAV_PLAN_FEATURES[to]
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors duration-200 ${
+                  isActive
+                    ? 'bg-accent/10 text-accent'
+                    : 'text-muted hover:bg-card hover:text-text'
+                }`
+              }
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="min-w-0 flex-1 truncate">{label}</span>
+              {feature && <PlanLockIcon feature={feature} />}
+            </NavLink>
+          )
+        })}
       </nav>
 
       <div className="border-t border-border p-3">
+        <div className="mb-2 rounded-lg px-3 py-2">
+          <p className="truncate text-sm font-medium capitalize">{displayName}</p>
+          <p className="text-xs text-muted">{planLabel} plan</p>
+        </div>
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted transition-colors hover:bg-card hover:text-text"
@@ -112,6 +125,7 @@ export function DashboardLayout({ children, title, subtitle, lastUpdated, header
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
+    <PlanProvider>
     <div className="flex min-h-screen bg-bg">
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       <main className="min-w-0 flex-1 overflow-auto">
@@ -145,5 +159,6 @@ export function DashboardLayout({ children, title, subtitle, lastUpdated, header
         <div className="animate-fade-in p-4 sm:p-6 lg:p-8">{children}</div>
       </main>
     </div>
+    </PlanProvider>
   )
 }

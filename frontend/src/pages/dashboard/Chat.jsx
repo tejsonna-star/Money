@@ -10,8 +10,12 @@ import {
   formatCurrency,
 } from '../../lib/supabase'
 import { sendChatMessage } from '../../lib/api'
+import PlanGate from '../../components/PlanGate'
+import { FEATURES } from '../../lib/planGating'
+import { usePlan } from '../../context/PlanContext'
 
 export default function Chat() {
+  const { hasFeature } = usePlan()
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
   const [token, setToken] = useState(null)
@@ -55,7 +59,7 @@ export default function Chat() {
   }, [])
 
   async function handleSend(text) {
-    if (!token) return
+    if (!token || !hasFeature(FEATURES.AI_CHAT)) return
     const userMsg = { role: 'user', content: text }
     const nextHistory = [...messages, userMsg]
     setMessages(nextHistory)
@@ -81,7 +85,9 @@ export default function Chat() {
 
   return (
     <DashboardLayout title="AI Chat" subtitle="Ask questions about your finances and career">
-      <ChatBox messages={messages} onSend={handleSend} loading={loading} />
+      <PlanGate feature={FEATURES.AI_CHAT} title="Unlimited AI chat requires Pro">
+        <ChatBox messages={messages} onSend={handleSend} loading={loading} />
+      </PlanGate>
     </DashboardLayout>
   )
 }

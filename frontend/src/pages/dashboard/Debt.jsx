@@ -5,6 +5,9 @@ import { Button, Input, Card } from '../../components/UI'
 import AIInsight from '../../components/AIInsight'
 import { getSession, getDebts, formatCurrency } from '../../lib/supabase'
 import { calculateDebtPayoff, callAI } from '../../lib/api'
+import PlanGate from '../../components/PlanGate'
+import { FEATURES } from '../../lib/planGating'
+import { usePlan } from '../../context/PlanContext'
 
 const emptyDebt = () => ({ name: '', balance: '', interest_rate: '', minimum_payment: '' })
 
@@ -69,6 +72,7 @@ function StrategyCard({ title, subtitle, result, defaultOpen = false }) {
 }
 
 export default function Debt() {
+  const { hasFeature } = usePlan()
   const [debts, setDebts] = useState([])
   const [userId, setUserId] = useState(null)
   const [token, setToken] = useState(null)
@@ -118,7 +122,7 @@ export default function Debt() {
   }
 
   async function askAI() {
-    if (!token) return
+    if (!token || !hasFeature(FEATURES.AI_INSIGHTS)) return
     setAiLoading(true)
     try {
       const result = await callAI('debt_advice', {
@@ -212,6 +216,7 @@ export default function Debt() {
           </div>
 
           <div className="mt-6">
+            <PlanGate feature={FEATURES.AI_INSIGHTS} title="AI debt insights require Plus">
             <AIInsight
               title="AI Debt Recommendation"
               content={aiAdvice}
@@ -219,6 +224,7 @@ export default function Debt() {
               onAction={askAI}
               actionLabel="Ask AI"
             />
+            </PlanGate>
           </div>
         </>
       )}
