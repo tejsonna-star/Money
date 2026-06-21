@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
@@ -10,6 +10,9 @@ import Budget from './pages/dashboard/Budget'
 import Career from './pages/dashboard/Career'
 import Settings from './pages/dashboard/Settings'
 import Chat from './pages/dashboard/Chat'
+import Transactions from './pages/dashboard/Transactions'
+import Goals from './pages/dashboard/Goals'
+import ToastContainer from './components/ToastContainer'
 import { supabase, getProfile } from './lib/supabase'
 
 const emptyAuthState = { loading: true, authed: false, onboarded: false }
@@ -37,7 +40,6 @@ function ProtectedRoute({ children }) {
       if (active) setState(next)
     }
 
-    // Wait for Supabase to finish (including email-verify hash in URL)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
@@ -46,7 +48,6 @@ function ProtectedRoute({ children }) {
             return
           }
           await finish(session)
-          // Clean hash from email verification link
           if (window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', window.location.pathname)
           }
@@ -54,7 +55,6 @@ function ProtectedRoute({ children }) {
       }
     )
 
-    // Never spin forever
     const timeout = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession()
       await finish(session)
@@ -107,22 +107,35 @@ function PublicRoute({ children }) {
   return children
 }
 
-export default function App() {
+function AnimatedRoutes() {
+  const location = useLocation()
+
   return (
-    <BrowserRouter>
-      <Routes>
+    <div key={location.pathname} className="animate-fade-in">
+      <Routes location={location}>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/dashboard/transactions" element={<ProtectedRoute><Transactions /></ProtectedRoute>} />
         <Route path="/dashboard/debt" element={<ProtectedRoute><Debt /></ProtectedRoute>} />
         <Route path="/dashboard/budget" element={<ProtectedRoute><Budget /></ProtectedRoute>} />
+        <Route path="/dashboard/goals" element={<ProtectedRoute><Goals /></ProtectedRoute>} />
         <Route path="/dashboard/career" element={<ProtectedRoute><Career /></ProtectedRoute>} />
         <Route path="/dashboard/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
         <Route path="/dashboard/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AnimatedRoutes />
+      <ToastContainer />
     </BrowserRouter>
   )
 }

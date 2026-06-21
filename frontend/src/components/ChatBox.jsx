@@ -76,15 +76,15 @@ export default function ChatBox({ onSend, loading, messages, placeholder = 'Ask 
       </div>
 
       <form onSubmit={handleSubmit} className="border-t border-border p-4">
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={placeholder}
-            className="flex-1 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm text-text placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="chat-input min-h-[42px] flex-1 rounded-lg border border-border bg-surface px-4 py-2.5 text-sm leading-normal text-text caret-accent placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
             disabled={loading}
           />
-          <Button type="submit" disabled={loading || !input.trim()} className="gap-1 px-4">
+          <Button type="submit" disabled={loading || !input.trim()} className="h-[42px] shrink-0 gap-1 px-4">
             <Send className="h-4 w-4" />
           </Button>
         </div>

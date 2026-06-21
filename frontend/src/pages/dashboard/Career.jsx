@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react'
 import { Copy, Check } from 'lucide-react'
 import { DashboardLayout } from '../../components/Sidebar'
-import { Button, Input, Select, Card } from '../../components/UI'
+import { Button, Input, Card } from '../../components/UI'
 import AIInsight from '../../components/AIInsight'
-import { getSession, getProfile, getExpenses, monthlyIncome, formatCurrency } from '../../lib/supabase'
-import { callAI } from '../../lib/api'
+import ChatBox from '../../components/ChatBox'
+import {
+  getSession,
+  getProfile,
+  getExpenses,
+  getDebts,
+  monthlyIncome,
+  formatCurrency,
+} from '../../lib/supabase'
+import { callAI, sendChatMessage } from '../../lib/api'
 
 export default function Career() {
   const [tab, setTab] = useState('raise')
@@ -30,17 +38,23 @@ export default function Career() {
   const [savings, setSavings] = useState(0)
   const [careerMoveResult, setCareerMoveResult] = useState(null)
 
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatLoading, setChatLoading] = useState(false)
+  const [debts, setDebts] = useState([])
+
   useEffect(() => {
     async function load() {
       const session = await getSession()
       if (!session) return
       setToken(session.access_token)
-      const [p, e] = await Promise.all([
+      const [p, e, d] = await Promise.all([
         getProfile(session.user.id),
         getExpenses(session.user.id),
+        getDebts(session.user.id),
       ])
       setProfile(p)
       setExpenses(e)
+      setDebts(d)
       setSalary(String(p?.salary || ''))
       setJobTitle(p?.job_title || '')
       setYearsExp(String(p?.years_experience || ''))
@@ -49,6 +63,14 @@ export default function Career() {
 
       const totalExp = e.reduce((s, x) => s + Number(x.amount), 0)
       setTargetExpenses(String(totalExp || ''))
+
+      const inc = monthlyIncome(p?.salary, p?.pay_frequency)
+      const totalDebt = d.reduce((s, x) => s + Number(x.balance), 0)
+      setChatMessages([{
+        role: 'assistant',
+        content: `I'm your career advisor. Ask about salary negotiation, side income ideas, or job market strategy. You're earning ~${formatCurrency(inc)}/mo with ${formatCurrency(totalDebt)} in debt.`,
+        stream: false,
+      }])
     }
     load()
   }, [])
@@ -125,6 +147,42 @@ export default function Career() {
     }
   }
 
+  async function handleCareerChat(text) {
+    if (!token) return
+    const userMsg = { role: 'user', content: text }
+    setChatMessages((prev) => [...prev, userMsg])
+    setChatLoading(true)
+    const totalDebt = debts.reduce((s, d) => s + Number(d.balance), 0)
+    try {
+      const reply = await sendChatMessage(
+        text,
+        chatMessages.filter((m) => m.role === 'user' || m.role === 'assistant'),
+        {
+          careerGoal: profile?.career_goal,
+          jobTitle: profile?.job_title,
+          salary: profile?.salary,
+          monthlyIncome: income,
+          monthlyExpenses: monthlyExpenses,
+          cashFlow: income - monthlyExpenses,
+          totalDebt,
+          savings,
+          city: profile?.city,
+          yearsExperience: profile?.years_experience,
+        },
+        token
+      )
+      setChatMessages((prev) => [...prev, { role: 'assistant', content: reply, stream: true }])
+    } catch (err) {
+      setChatMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: err.message || 'Something went wrong. Try again.',
+        stream: true,
+      }])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
   const statusColors = {
     underpaid: 'text-danger',
     'fairly paid': 'text-mint',
@@ -133,10 +191,11 @@ export default function Career() {
 
   return (
     <DashboardLayout title="Career Coach" subtitle="Know your worth and plan your next move">
-      <div className="mb-6 flex gap-2 border-b border-border">
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-border">
         {[
           { id: 'raise', label: 'Raise Negotiator' },
           { id: 'move', label: 'Career Move Calculator' },
+          { id: 'advisor', label: 'AI Career Advisor' },
         ].map(({ id, label }) => (
           <button
             key={id}
@@ -273,6 +332,20 @@ export default function Career() {
               loading={loading}
             />
           </div>
+        </div>
+      )}
+
+      {tab === 'advisor' && (
+        <div className="max-w-3xl">
+          <p className="mb-4 text-sm text-muted">
+            Get personalized advice on salary negotiation, side income, and career moves based on your finances.
+          </p>
+          <ChatBox
+            messages={chatMessages}
+            onSend={handleCareerChat}
+            loading={chatLoading}
+            placeholder="e.g. How should I negotiate a raise with my current savings?"
+          />
         </div>
       )}
     </DashboardLayout>
