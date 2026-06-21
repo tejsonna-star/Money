@@ -34,10 +34,14 @@ export default async function handler(req, res) {
     case 'customer.subscription.created':
     case 'customer.subscription.updated': {
       const userId = subscription.metadata?.supabase_user_id
+      const plan = subscription.metadata?.plan || 'pro'
       if (userId) {
         await supabase
           .from('profiles')
-          .update({ subscription_status: subscription.status })
+          .update({
+            subscription_status: subscription.status,
+            subscription_plan: ['active', 'trialing'].includes(subscription.status) ? plan : 'free',
+          })
           .eq('id', userId)
       }
       break
@@ -47,7 +51,7 @@ export default async function handler(req, res) {
       if (userId) {
         await supabase
           .from('profiles')
-          .update({ subscription_status: 'canceled' })
+          .update({ subscription_status: 'canceled', subscription_plan: 'free' })
           .eq('id', userId)
       }
       break

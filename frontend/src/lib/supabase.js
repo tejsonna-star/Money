@@ -287,10 +287,12 @@ export function monthlyIncome(salary, payFrequency) {
 }
 
 export function formatCurrency(amount, currency = 'USD') {
+  const code = currency || 'USD'
+  const noDecimals = ['JPY', 'KRW'].includes(code)
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: currency || 'USD',
-    maximumFractionDigits: 0,
+    currency: code,
+    maximumFractionDigits: noDecimals ? 0 : 0,
   }).format(amount || 0)
 }
 

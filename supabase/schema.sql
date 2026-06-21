@@ -168,6 +168,7 @@ create trigger on_auth_user_created
 -- ========== Competitive feature expansion ==========
 
 alter table profiles add column if not exists currency text default 'USD';
+alter table profiles add column if not exists subscription_plan text default 'free';
 alter table profiles add column if not exists avatar_url text;
 alter table profiles add column if not exists notification_prefs jsonb default '{"budget_alerts": true, "weekly_summary": true}';
 alter table profiles add column if not exists onboarding_checklist jsonb default '{}';

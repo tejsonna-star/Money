@@ -45,12 +45,14 @@ export async function sendChatMessage(message, history, context, token) {
   return json.reply
 }
 
-export async function createCheckoutSession(token) {
+export async function createCheckoutSession(token, plan = 'pro') {
   const res = await fetch(`${API_BASE}/api/stripe/create-checkout`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ plan }),
   })
   if (!res.ok) throw new Error('Failed to create checkout session')
   return res.json()
