@@ -99,7 +99,9 @@ export async function callGemini(prompt) {
 export async function callGeminiChat(message, history = [], context = {}) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY not set on Vercel — add it and redeploy')
+    throw new Error(
+      'GEMINI_API_KEY is missing on Vercel. Add GEMINI_API_KEY with your Google API key (not in GEMINI_MODEL). Redeploy after saving.'
+    )
   }
 
   const system = `${SYSTEM_PROMPT}

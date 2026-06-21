@@ -1,13 +1,18 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, Loader2, Sparkles } from 'lucide-react'
 import { Button } from './UI'
+import TypewriterText from './TypewriterText'
 
 export default function ChatBox({ onSend, loading, messages, placeholder = 'Ask about your money or career...' }) {
   const [input, setInput] = useState('')
   const bottomRef = useRef(null)
 
-  useEffect(() => {
+  function scrollToBottom() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
   }, [messages, loading])
 
   async function handleSubmit(e) {
@@ -31,24 +36,36 @@ export default function ChatBox({ onSend, loading, messages, placeholder = 'Ask 
             Ask anything — debt payoff, budgeting, salary negotiation, career moves. I use your profile numbers when available.
           </div>
         )}
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
+        {messages.map((msg, i) => {
+          const shouldAnimate = msg.role === 'assistant' && msg.stream && i === messages.length - 1
+
+          return (
             <div
-              className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-accent text-white'
-                  : 'border border-border bg-surface text-text'
-              }`}
+              key={i}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              {msg.content.split('\n').map((line, j) => (
-                <p key={j} className={j > 0 ? 'mt-2' : ''}>{line}</p>
-              ))}
+              <div
+                className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-accent text-white'
+                    : 'border border-border bg-surface text-text'
+                }`}
+              >
+                {msg.role === 'user' ? (
+                  msg.content.split('\n').map((line, j) => (
+                    <p key={j} className={j > 0 ? 'mt-2' : ''}>{line}</p>
+                  ))
+                ) : (
+                  <TypewriterText
+                    text={msg.content}
+                    animate={shouldAnimate}
+                    onProgress={scrollToBottom}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         {loading && (
           <div className="flex items-center gap-2 text-sm text-muted">
             <Loader2 className="h-4 w-4 animate-spin" />

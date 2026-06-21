@@ -67,11 +67,12 @@ export default function Chat() {
         context,
         token
       )
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      setMessages((prev) => [...prev, { role: 'assistant', content: reply, stream: true }])
     } catch (err) {
       setMessages((prev) => [...prev, {
         role: 'assistant',
         content: err.message || 'Something went wrong. Check GEMINI_API_KEY on Vercel and redeploy.',
+        stream: true,
       }])
     } finally {
       setLoading(false)

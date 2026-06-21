@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
 import { Button } from './UI'
+import TypewriterText from './TypewriterText'
 
 export default function AIInsight({
   title = 'AI Insight',
@@ -37,9 +38,7 @@ export default function AIInsight({
             className={`text-sm leading-relaxed text-text/90 ${expanded ? '' : 'line-clamp-2'}`}
             onClick={() => setExpanded(!expanded)}
           >
-            {content.split('\n').map((line, i) => (
-              <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
-            ))}
+            <TypewriterText text={content} animate key={content} />
           </div>
         ) : (
           <p className="text-sm text-muted">
