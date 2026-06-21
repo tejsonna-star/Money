@@ -26,6 +26,14 @@
 }
 
 :root[data-theme="dark"] {
+  --bg: #0A0A0F;
+  --surface: #12121A;
+  --card: #16161F;
+  --border: #1E1E2E;
+  --text: #F0F0F5;
+  --muted: #8888AA;
+  --hero-glow: rgba(108, 99, 255, 0.05);
+  --header-bg: rgba(10, 10, 15, 0.8);
   color-scheme: dark;
 }
 

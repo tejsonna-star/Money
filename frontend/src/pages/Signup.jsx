@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Mail } from 'lucide-react'
 import { supabase, getSupabaseConfigError } from '../lib/supabase'
 import { Logo, Button, Input } from '../components/UI'
+import { ThemeToggleBar } from '../components/ThemeToggle'
 
 export default function Signup() {
   const [email, setEmail] = useState('')
@@ -53,7 +54,8 @@ export default function Signup() {
 
   if (emailSent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg px-6">
+      <div className="relative flex min-h-screen items-center justify-center bg-bg px-6">
+        <ThemeToggleBar />
         <div className="w-full max-w-md text-center">
           <Logo size="lg" />
           <div className="mt-8 rounded-xl border border-accent/30 bg-accent/5 p-8">
@@ -79,7 +81,8 @@ export default function Signup() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg px-6">
+    <div className="relative flex min-h-screen items-center justify-center bg-bg px-6">
+      <ThemeToggleBar />
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Logo size="lg" />

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, ChevronRight, ChevronLeft } from 'lucide-react'
 import { supabase, getSession, getProfile } from '../lib/supabase'
 import { Logo, Button, Input, Select } from '../components/UI'
+import { ThemeToggleBar } from '../components/ThemeToggle'
 
 const CAREER_GOALS = [
   'Get a raise',
@@ -294,7 +295,8 @@ export default function Onboarding() {
   const current = steps[step - 1]
 
   return (
-    <div className="min-h-screen bg-bg px-6 py-12">
+    <div className="relative min-h-screen bg-bg px-6 py-12">
+      <ThemeToggleBar />
       <div className="mx-auto max-w-xl">
         <div className="mb-8 text-center">
           <Logo size="lg" />

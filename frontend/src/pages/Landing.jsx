@@ -72,7 +72,7 @@ export default function Landing() {
             </a>
           </nav>
           <div className="flex items-center gap-3">
-            <ThemeToggle />
+            <ThemeToggle variant="pill" />
             <Link to="/login" className="hidden sm:block">
               <Button variant="ghost" size="sm">Log in</Button>
             </Link>

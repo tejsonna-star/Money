@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase, getSupabaseConfigError } from '../lib/supabase'
 import { Logo, Button, Input } from '../components/UI'
+import { ThemeToggleBar } from '../components/ThemeToggle'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -50,7 +51,8 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg px-6">
+    <div className="relative flex min-h-screen items-center justify-center bg-bg px-6">
+      <ThemeToggleBar />
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Logo size="lg" />

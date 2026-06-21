@@ -134,7 +134,7 @@ export function DashboardLayout({ children, title, subtitle, lastUpdated, header
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {headerAction}
-              <ThemeToggle />
+              <ThemeToggle variant="pill" />
             </div>
           </div>
         </div>

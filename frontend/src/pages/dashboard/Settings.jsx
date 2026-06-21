@@ -7,6 +7,7 @@ import { createCheckoutSession, createPortalSession } from '../../lib/api'
 import { CURRENCIES } from '../../lib/constants'
 import { exportUserDataJson, exportTransactionsCsv } from '../../lib/financeUtils'
 import { toastSuccess, toastError } from '../../lib/toast'
+import ThemeToggle from '../../components/ThemeToggle'
 
 const CAREER_GOALS = [
   'Get a raise',
@@ -223,6 +224,14 @@ export default function Settings() {
               {saving ? 'Saving...' : 'Save profile'}
             </Button>
           </form>
+        </Card>
+
+        <Card>
+          <h3 className="font-heading text-lg font-semibold">Appearance</h3>
+          <p className="mt-1 text-sm text-muted">Choose dark or light mode. Saved automatically.</p>
+          <div className="mt-4">
+            <ThemeToggle variant="pill" />
+          </div>
         </Card>
 
         <Card>

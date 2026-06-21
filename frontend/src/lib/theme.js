@@ -1,25 +1,34 @@
 const STORAGE_KEY = 'upshift-theme'
+const listeners = new Set()
 
 export function getTheme() {
   if (typeof window === 'undefined') return 'dark'
-  return localStorage.getItem(STORAGE_KEY) || 'dark'
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved === 'light' || saved === 'dark') return saved
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'
 }
 
 export function setTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme)
-  localStorage.setItem(STORAGE_KEY, theme)
+  const next = theme === 'light' ? 'light' : 'dark'
+  document.documentElement.setAttribute('data-theme', next)
+  localStorage.setItem(STORAGE_KEY, next)
+  listeners.forEach((fn) => fn(next))
+  return next
+}
+
+export function subscribeTheme(fn) {
+  listeners.add(fn)
+  return () => listeners.delete(fn)
 }
 
 export function initTheme() {
-  const saved = getTheme()
+  const saved = localStorage.getItem(STORAGE_KEY)
   const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches
-  const theme = localStorage.getItem(STORAGE_KEY) || (prefersLight ? 'light' : 'dark')
+  const theme = saved === 'light' || saved === 'dark' ? saved : (prefersLight ? 'light' : 'dark')
   setTheme(theme)
   return theme
 }
 
 export function toggleTheme() {
-  const next = getTheme() === 'dark' ? 'light' : 'dark'
-  setTheme(next)
-  return next
+  return setTheme(getTheme() === 'dark' ? 'light' : 'dark')
 }
