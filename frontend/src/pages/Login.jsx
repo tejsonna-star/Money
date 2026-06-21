@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase, getSupabaseConfigError } from '../lib/supabase'
 import { Logo, Button, Input } from '../components/UI'
 
 export default function Login() {
@@ -15,6 +15,9 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
+      const configError = getSupabaseConfigError()
+      if (configError) throw new Error(configError)
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -33,7 +36,8 @@ export default function Login() {
         navigate('/onboarding')
       }
     } catch (err) {
-      setError(err.message || 'Failed to sign in')
+      const msg = err.message || 'Failed to sign in'
+      setError(msg === 'Failed to fetch' ? 'Cannot reach Supabase. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set on Vercel, then redeploy.' : msg)
     } finally {
       setLoading(false)
     }

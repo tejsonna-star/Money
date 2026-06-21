@@ -1,4 +1,4 @@
-import { requireAuth, requireSubscription, sendError } from './_lib/auth.js'
+import { requireAuth, sendError } from './_lib/auth.js'
 import { callGemini, buildPrompt } from './_lib/gemini.js'
 
 export default async function handler(req, res) {
@@ -6,7 +6,6 @@ export default async function handler(req, res) {
 
   try {
     const { user } = await requireAuth(req)
-    await requireSubscription(user)
 
     const { type, data } = req.body
     if (!type || !data) {

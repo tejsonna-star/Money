@@ -53,10 +53,11 @@ export default function Settings() {
     }
   }
 
-  const status = profile?.subscription_status || 'trialing'
+  const status = profile?.subscription_status || 'free'
   const statusLabel = {
+    free: 'Free',
     trialing: 'Free Trial',
-    active: 'Active',
+    active: 'Pro',
     canceled: 'Canceled',
     past_due: 'Past Due',
   }
@@ -72,24 +73,25 @@ export default function Settings() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <h3 className="font-heading text-lg font-semibold">Subscription</h3>
+          <p className="mt-1 text-sm text-muted">You're on the free plan. Upgrade when you're ready.</p>
           <div className="mt-4 space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-muted">Plan</span>
-              <span className="font-medium">Upshift Pro — $15/mo</span>
+              <span className="font-medium">{status === 'active' ? 'Upshift Pro — $15/mo' : 'Free'}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted">Status</span>
               <span className={`font-medium capitalize ${
-                status === 'active' || status === 'trialing' ? 'text-mint' : 'text-danger'
+                status === 'free' || status === 'trialing' || status === 'active' ? 'text-mint' : 'text-danger'
               }`}>
                 {statusLabel[status] || status}
               </span>
             </div>
           </div>
           <div className="mt-6 flex gap-3">
-            {(status === 'trialing' || status === 'canceled') && (
+            {status !== 'active' && (
               <Button onClick={handleSubscribe} disabled={loading}>
-                {loading ? 'Loading...' : 'Subscribe Now'}
+                {loading ? 'Loading...' : 'Upgrade to Pro — $15/mo'}
               </Button>
             )}
             {(status === 'active' || status === 'trialing') && profile?.stripe_customer_id && (

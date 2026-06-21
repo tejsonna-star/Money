@@ -4,12 +4,17 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
+  supabaseUrl || '',
+  supabaseAnonKey || ''
 )
 
 export const isSupabaseConfigured = () =>
-  Boolean(supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('placeholder'))
+  Boolean(supabaseUrl && supabaseAnonKey)
+
+export function getSupabaseConfigError() {
+  if (isSupabaseConfigured()) return null
+  return 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel → Settings → Environment Variables, then redeploy.'
+}
 
 export async function getSession() {
   const { data: { session } } = await supabase.auth.getSession()

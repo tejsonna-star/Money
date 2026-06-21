@@ -77,7 +77,7 @@ export default function Landing() {
               <Button variant="ghost" size="sm">Log in</Button>
             </Link>
             <Link to="/signup">
-              <Button size="sm">Start Free Trial</Button>
+              <Button size="sm">Sign up free</Button>
             </Link>
           </div>
         </div>
@@ -104,7 +104,7 @@ export default function Landing() {
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link to="/signup">
               <Button size="lg" className="gap-2">
-                Start Free Trial
+                Sign up free
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -112,7 +112,7 @@ export default function Landing() {
               <Button variant="secondary" size="lg">See how it works</Button>
             </a>
           </div>
-          <p className="mt-4 text-sm text-muted">7-day free trial · Cancel anytime · $15/mo after</p>
+          <p className="mt-4 text-sm text-muted">Free to start · Upgrade to Pro anytime — $15/mo</p>
         </div>
 
         {/* Dashboard preview mock */}
@@ -223,7 +223,7 @@ export default function Landing() {
                 <span className="font-heading text-5xl font-bold">$15</span>
                 <span className="text-muted">/month</span>
               </div>
-              <p className="mt-2 text-sm text-mint">7-day free trial included</p>
+              <p className="mt-2 text-sm text-mint">Free to start — upgrade anytime</p>
               <ul className="mt-8 space-y-3">
                 {[
                   'Debt payoff engine with AI recommendations',
@@ -240,7 +240,7 @@ export default function Landing() {
                 ))}
               </ul>
               <Link to="/signup" className="mt-8 block">
-                <Button className="w-full" size="lg">Start Free Trial</Button>
+                <Button className="w-full" size="lg">Sign up free</Button>
               </Link>
             </div>
           </div>

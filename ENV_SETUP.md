@@ -6,7 +6,24 @@ External services (free tiers): **Supabase**, **Gemini**, **Stripe**
 
 ---
 
-## Project structure on Vercel
+## Fix "Failed to fetch" on login
+
+Supabase keys are missing on Vercel. Fix:
+
+1. Vercel → **Settings → Environment Variables** → add:
+   - `VITE_SUPABASE_URL` = `https://xxxxx.supabase.co`
+   - `VITE_SUPABASE_ANON_KEY` = your anon key
+   - `SUPABASE_URL` = same URL
+   - `SUPABASE_SERVICE_KEY` = service_role key
+2. **Redeploy** the project
+
+In Supabase → **Authentication → URL Configuration**:
+- **Site URL:** `https://money-five-ecru.vercel.app`
+- **Redirect URLs:** `https://money-five-ecru.vercel.app/**`
+
+Run `supabase/schema.sql` in Supabase SQL Editor (includes auto profile on signup).
+
+---
 
 ```
 Money/

@@ -11,7 +11,7 @@ create table profiles (
   years_experience numeric,
   city text,
   stripe_customer_id text,
-  subscription_status text default 'trialing',
+  subscription_status text default 'free',
   onboarding_complete boolean default false,
   created_at timestamp with time zone default now()
 );
@@ -70,3 +70,21 @@ create policy "Users can update own expenses" on expenses
 
 create policy "Users can delete own expenses" on expenses
   for delete using (auth.uid() = user_id);
+
+-- Auto-create profile when a user signs up (works even before email confirm)
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, subscription_status, onboarding_complete)
+  values (new.id, 'free', false)
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();

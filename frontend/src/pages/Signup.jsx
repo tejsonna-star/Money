@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase, getSupabaseConfigError } from '../lib/supabase'
 import { Logo, Button, Input } from '../components/UI'
 
 export default function Signup() {
@@ -15,20 +15,24 @@ export default function Signup() {
     setError('')
     setLoading(true)
     try {
+      const configError = getSupabaseConfigError()
+      if (configError) throw new Error(configError)
+
       const { data, error: authError } = await supabase.auth.signUp({ email, password })
       if (authError) throw authError
 
-      if (data.user) {
+      if (data.user && data.session) {
         await supabase.from('profiles').upsert({
           id: data.user.id,
-          subscription_status: 'trialing',
+          subscription_status: 'free',
           onboarding_complete: false,
         })
       }
 
       navigate('/onboarding')
     } catch (err) {
-      setError(err.message || 'Failed to create account')
+      const msg = err.message || 'Failed to create account'
+      setError(msg === 'Failed to fetch' ? 'Cannot reach Supabase. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set on Vercel, then redeploy.' : msg)
     } finally {
       setLoading(false)
     }
@@ -40,7 +44,7 @@ export default function Signup() {
         <div className="mb-8 text-center">
           <Logo size="lg" />
           <h1 className="mt-6 font-heading text-2xl font-bold">Create your account</h1>
-          <p className="mt-2 text-sm text-muted">Start your 7-day free trial</p>
+          <p className="mt-2 text-sm text-muted">Free to sign up — no credit card required</p>
         </div>
 
         <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card p-8">
@@ -69,10 +73,10 @@ export default function Signup() {
             />
           </div>
           <Button type="submit" className="mt-6 w-full" disabled={loading}>
-            {loading ? 'Creating account...' : 'Start Free Trial'}
+            {loading ? 'Creating account...' : 'Create free account'}
           </Button>
           <p className="mt-4 text-center text-xs text-muted">
-            By signing up, you agree to our terms. $15/mo after trial.
+            Upgrade to Pro anytime in Settings — $15/mo.
           </p>
           <p className="mt-4 text-center text-sm text-muted">
             Already have an account?{' '}
