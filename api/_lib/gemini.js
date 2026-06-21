@@ -3,9 +3,10 @@ const SYSTEM_PROMPT =
 
 const MODELS = [
   process.env.GEMINI_MODEL,
-  'gemini-1.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-pro',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-flash-latest',
 ].filter(Boolean)
 
 const RETRYABLE_STATUSES = new Set([400, 404, 429])
@@ -23,7 +24,20 @@ function parseGeminiError(status, body) {
     return 'Gemini API quota exceeded. Enable billing at ai.google.dev or wait and try again later.'
   }
 
+  if (status === 404) {
+    return 'That Gemini model is unavailable on your API key.'
+  }
+
   return String(message).slice(0, 200)
+}
+
+function throwIfAllModelsFailed(lastError) {
+  if (lastError?.status === 404) {
+    throw new Error(
+      'No supported Gemini model found. Set GEMINI_MODEL=gemini-2.5-flash in Vercel, then redeploy.'
+    )
+  }
+  throw lastError || new Error('All Gemini models failed')
 }
 
 async function requestGeminiContents(model, apiKey, system, contents) {
@@ -77,7 +91,7 @@ export async function callGemini(prompt) {
     }
   }
 
-  throw lastError || new Error('All Gemini models failed')
+  throwIfAllModelsFailed(lastError)
 }
 
 export async function callGeminiChat(message, history = [], context = {}) {
@@ -109,7 +123,7 @@ ${JSON.stringify(context, null, 2)}`
     }
   }
 
-  throw lastError || new Error('All Gemini models failed')
+  throwIfAllModelsFailed(lastError)
 }
 
 export function buildPrompt(type, data) {
