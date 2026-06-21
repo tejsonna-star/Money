@@ -14,6 +14,8 @@ import {
   LineChart,
   Menu,
   X,
+  User,
+  Sparkles,
 } from 'lucide-react'
 import { Logo } from './UI'
 import ThemeToggle from './ThemeToggle'
@@ -29,6 +31,8 @@ const navItems = [
   { to: '/dashboard/goals', icon: Target, label: 'Goals' },
   { to: '/dashboard/career', icon: Briefcase, label: 'Career Coach' },
   { to: '/dashboard/chat', icon: MessageCircle, label: 'AI Chat' },
+  { to: '/dashboard/profile', icon: User, label: 'Profile' },
+  { to: '/dashboard/subscription', icon: Sparkles, label: 'Subscription' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ]
 

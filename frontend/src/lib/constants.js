@@ -75,7 +75,6 @@ export const SUBSCRIPTION_PLANS = [
       'Salary benchmark & raise scripts',
       'What-if scenarios & anomaly alerts',
       'Net worth predictions',
-      'Priority support',
     ],
     cta: 'Upgrade to Pro',
     highlighted: false,

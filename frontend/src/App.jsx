@@ -14,6 +14,8 @@ const Debt = lazy(() => import('./pages/dashboard/Debt'))
 const Budget = lazy(() => import('./pages/dashboard/Budget'))
 const Career = lazy(() => import('./pages/dashboard/Career'))
 const Settings = lazy(() => import('./pages/dashboard/Settings'))
+const Profile = lazy(() => import('./pages/dashboard/Profile'))
+const Subscription = lazy(() => import('./pages/dashboard/Subscription'))
 const Chat = lazy(() => import('./pages/dashboard/Chat'))
 const Transactions = lazy(() => import('./pages/dashboard/Transactions'))
 const Goals = lazy(() => import('./pages/dashboard/Goals'))
@@ -141,6 +143,8 @@ function AnimatedRoutes() {
         <Route path="/dashboard/goals" element={<ProtectedRoute><LazyPage><Goals /></LazyPage></ProtectedRoute>} />
         <Route path="/dashboard/career" element={<ProtectedRoute><LazyPage><Career /></LazyPage></ProtectedRoute>} />
         <Route path="/dashboard/chat" element={<ProtectedRoute><LazyPage><Chat /></LazyPage></ProtectedRoute>} />
+        <Route path="/dashboard/profile" element={<ProtectedRoute><LazyPage><Profile /></LazyPage></ProtectedRoute>} />
+        <Route path="/dashboard/subscription" element={<ProtectedRoute><LazyPage><Subscription /></LazyPage></ProtectedRoute>} />
         <Route path="/dashboard/settings" element={<ProtectedRoute><LazyPage><Settings /></LazyPage></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

@@ -89,8 +89,8 @@ export default async function handler(req, res) {
         trial_period_days: 7,
         metadata: { supabase_user_id: user.id, plan },
       },
-      success_url: `${frontendUrl}/dashboard/settings?success=true&plan=${plan}`,
-      cancel_url: `${frontendUrl}/dashboard/settings?canceled=true`,
+      success_url: `${frontendUrl}/dashboard/subscription?success=true&plan=${plan}`,
+      cancel_url: `${frontendUrl}/dashboard/subscription?canceled=true`,
       metadata: { supabase_user_id: user.id, plan },
     })
 
