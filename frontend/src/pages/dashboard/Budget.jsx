@@ -92,7 +92,7 @@ export default function Budget() {
   const rolloverData = applyBudgetRollover(
     allCategories.map((cat) => ({
       category: cat,
-      monthly_limit: limitsMap[cat]?.monthly_limit ?? Number(limitDrafts[cat]) || 0,
+      monthly_limit: limitsMap[cat]?.monthly_limit ?? (Number(limitDrafts[cat]) || 0),
       rollover_balance: limitsMap[cat]?.rollover_balance ?? 0,
     })),
     categorySpending
