@@ -2,7 +2,8 @@ export default function handler(_req, res) {
   res.setHeader('Content-Type', 'application/json')
   res.status(200).json({
     status: 'ok',
-    gemini: Boolean(process.env.GEMINI_API_KEY),
+    gemini_key: Boolean(process.env.GEMINI_API_KEY),
+    gemini_model: process.env.GEMINI_MODEL || null,
     supabase: Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY),
   })
 }

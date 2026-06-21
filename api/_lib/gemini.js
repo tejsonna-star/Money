@@ -76,7 +76,9 @@ async function requestGemini(model, apiKey, prompt) {
 export async function callGemini(prompt) {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY not set on Vercel — add it under Environment Variables and redeploy')
+    throw new Error(
+      'GEMINI_API_KEY is missing on Vercel. Add a separate env var named GEMINI_API_KEY (your Google API key). GEMINI_MODEL should only be the model name, e.g. gemini-2.5-flash. Enable Production, then redeploy.'
+    )
   }
 
   const models = [...new Set(MODELS)]
