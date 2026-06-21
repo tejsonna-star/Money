@@ -68,6 +68,9 @@ export default function Dashboard() {
   const income = monthlyIncome(profile?.salary, profile?.pay_frequency)
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0)
   const totalDebt = debts.reduce((s, d) => s + Number(d.balance), 0)
+  const savings = Number(profile?.savings) || 0
+  const netWorth = savings - totalDebt
+  const cashFlow = income - totalExpenses
   const totalOriginal = debts.reduce((s, d) => s + (Number(d.original_balance) || Number(d.balance)), 0)
   const paidOff = Math.max(0, totalOriginal - totalDebt)
   const debtProgress = totalOriginal > 0 ? (paidOff / totalOriginal) * 100 : (totalDebt === 0 ? 100 : 0)
