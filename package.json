@@ -1,0 +1,9 @@
+{
+  "name": "upshift",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "stripe": "^18.2.1"
+  }
+}
