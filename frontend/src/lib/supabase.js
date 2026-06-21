@@ -5,7 +5,14 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 export const supabase = createClient(
   supabaseUrl || '',
-  supabaseAnonKey || ''
+  supabaseAnonKey || '',
+  {
+    auth: {
+      detectSessionInUrl: true,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  }
 )
 
 export const isSupabaseConfigured = () =>
@@ -22,33 +29,45 @@ export async function getSession() {
 }
 
 export async function getProfile(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single()
-  if (error && error.code !== 'PGRST116') throw error
-  return data
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) return null
+    return data
+  } catch {
+    return null
+  }
 }
 
 export async function getDebts(userId) {
-  const { data, error } = await supabase
-    .from('debts')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return data || []
+  try {
+    const { data, error } = await supabase
+      .from('debts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+    if (error) return []
+    return data || []
+  } catch {
+    return []
+  }
 }
 
 export async function getExpenses(userId) {
-  const { data, error } = await supabase
-    .from('expenses')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: true })
-  if (error) throw error
-  return data || []
+  try {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+    if (error) return []
+    return data || []
+  } catch {
+    return []
+  }
 }
 
 export function monthlyIncome(salary, payFrequency) {

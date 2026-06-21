@@ -70,7 +70,10 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    if (profile && token) fetchInsight()
+    if (profile && token) {
+      const t = setTimeout(() => fetchInsight(), 100)
+      return () => clearTimeout(t)
+    }
   }, [profile, token])
 
   return (

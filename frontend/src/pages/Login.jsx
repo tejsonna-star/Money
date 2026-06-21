@@ -37,7 +37,13 @@ export default function Login() {
       }
     } catch (err) {
       const msg = err.message || 'Failed to sign in'
-      setError(msg === 'Failed to fetch' ? 'Cannot reach Supabase. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set on Vercel, then redeploy.' : msg)
+      if (msg === 'Failed to fetch') {
+        setError('Cannot reach Supabase. Check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set on Vercel, then redeploy.')
+      } else if (msg.toLowerCase().includes('email not confirmed')) {
+        setError('Please verify your email first — check your inbox for the link we sent you.')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }

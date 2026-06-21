@@ -11,35 +11,66 @@ import Career from './pages/dashboard/Career'
 import Settings from './pages/dashboard/Settings'
 import { supabase, getProfile } from './lib/supabase'
 
+const emptyAuthState = { loading: true, authed: false, onboarded: false }
+
+async function resolveAuthState(session) {
+  if (!session) {
+    return { loading: false, authed: false, onboarded: false }
+  }
+  const profile = await getProfile(session.user.id)
+  return {
+    loading: false,
+    authed: true,
+    onboarded: Boolean(profile?.onboarding_complete),
+  }
+}
+
 function ProtectedRoute({ children }) {
-  const [state, setState] = useState({ loading: true, authed: false, onboarded: false, subscribed: false })
+  const [state, setState] = useState(emptyAuthState)
 
   useEffect(() => {
-    async function check() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setState({ loading: false, authed: false, onboarded: false, subscribed: false })
-        return
-      }
-      const profile = await getProfile(session.user.id)
-      const subscribed = ['active', 'trialing'].includes(profile?.subscription_status)
-      setState({
-        loading: false,
-        authed: true,
-        onboarded: profile?.onboarding_complete,
-        subscribed,
-      })
-    }
-    check()
+    let active = true
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => check())
-    return () => subscription.unsubscribe()
+    async function finish(session) {
+      const next = await resolveAuthState(session)
+      if (active) setState(next)
+    }
+
+    // Wait for Supabase to finish (including email-verify hash in URL)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+          if (event === 'SIGNED_OUT') {
+            if (active) setState({ loading: false, authed: false, onboarded: false })
+            return
+          }
+          await finish(session)
+          // Clean hash from email verification link
+          if (window.location.hash.includes('access_token')) {
+            window.history.replaceState(null, '', window.location.pathname)
+          }
+        }
+      }
+    )
+
+    // Never spin forever
+    const timeout = setTimeout(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      await finish(session)
+    }, 4000)
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [])
 
   if (state.loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-bg">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-bg">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+        <p className="text-sm text-muted">Loading your dashboard...</p>
       </div>
     )
   }
@@ -55,10 +86,19 @@ function PublicRoute({ children }) {
   const [authed, setAuthed] = useState(false)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthed(!!session)
-      setLoading(false)
+    let active = true
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        if (active) {
+          setAuthed(!!session)
+          setLoading(false)
+        }
+      }
     })
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   if (loading) return null
