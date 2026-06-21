@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Trash2, ChevronRight, ChevronLeft } from 'lucide-react'
-import { supabase, getSession } from '../lib/supabase'
+import { supabase, getSession, getProfile } from '../lib/supabase'
 import { Logo, Button, Input, Select } from '../components/UI'
 
 const CAREER_GOALS = [
@@ -29,7 +29,9 @@ export default function Onboarding() {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const [userId, setUserId] = useState(null)
+  const [error, setError] = useState('')
 
   const [salary, setSalary] = useState('')
   const [payFrequency, setPayFrequency] = useState('annual')
@@ -40,10 +42,21 @@ export default function Onboarding() {
   const [careerGoal, setCareerGoal] = useState('Pay off debt')
 
   useEffect(() => {
-    getSession().then((session) => {
-      if (!session) navigate('/login')
-      else setUserId(session.user.id)
-    })
+    async function init() {
+      const session = await getSession()
+      if (!session) {
+        navigate('/login', { replace: true })
+        return
+      }
+      const profile = await getProfile(session.user.id)
+      if (profile?.onboarding_complete) {
+        navigate('/dashboard', { replace: true })
+        return
+      }
+      setUserId(session.user.id)
+      setCheckingAuth(false)
+    }
+    init()
   }, [navigate])
 
   function updateDebt(i, field, value) {
@@ -54,46 +67,88 @@ export default function Onboarding() {
     setExpenses((prev) => prev.map((e, idx) => (idx === i ? { ...e, amount: value } : e)))
   }
 
+  async function saveProfile(complete = true) {
+    const payload = {
+      salary: Number(salary) || 0,
+      pay_frequency: payFrequency,
+      career_goal: careerGoal,
+      subscription_status: 'free',
+      onboarding_complete: complete,
+    }
+
+    const { data: updated, error: updateError } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('id', userId)
+      .select('id')
+
+    if (updateError) throw new Error(updateError.message)
+
+    if (!updated?.length) {
+      const { error: insertError } = await supabase.from('profiles').insert({
+        id: userId,
+        ...payload,
+      })
+      if (insertError) throw new Error(insertError.message)
+    }
+  }
+
+  async function saveDebtsAndExpenses() {
+    const validDebts = debts.filter((d) => d.name && d.balance)
+    if (validDebts.length) {
+      const { error } = await supabase.from('debts').insert(
+        validDebts.map((d) => ({
+          user_id: userId,
+          name: d.name,
+          balance: Number(d.balance),
+          interest_rate: Number(d.interest_rate) || 0,
+          minimum_payment: Number(d.minimum_payment) || 0,
+        }))
+      )
+      if (error) console.warn('Debts save:', error.message)
+    }
+
+    const validExpenses = expenses.filter((e) => e.amount)
+    if (validExpenses.length) {
+      const { error } = await supabase.from('expenses').insert(
+        validExpenses.map((e) => ({
+          user_id: userId,
+          category: e.category,
+          amount: Number(e.amount),
+        }))
+      )
+      if (error) console.warn('Expenses save:', error.message)
+    }
+  }
+
+  function goToDashboard() {
+    // Hard reload so ProtectedRoute picks up onboarding_complete
+    window.location.href = '/dashboard'
+  }
+
   async function handleComplete() {
     if (!userId) return
+    setError('')
     setLoading(true)
     try {
-      await supabase.from('profiles').upsert({
-        id: userId,
-        salary: Number(salary) || 0,
-        pay_frequency: payFrequency,
-        career_goal: careerGoal,
-        onboarding_complete: true,
-      })
-
-      const validDebts = debts.filter((d) => d.name && d.balance)
-      if (validDebts.length) {
-        await supabase.from('debts').insert(
-          validDebts.map((d) => ({
-            user_id: userId,
-            name: d.name,
-            balance: Number(d.balance),
-            interest_rate: Number(d.interest_rate) || 0,
-            minimum_payment: Number(d.minimum_payment) || 0,
-          }))
-        )
-      }
-
-      const validExpenses = expenses.filter((e) => e.amount)
-      if (validExpenses.length) {
-        await supabase.from('expenses').insert(
-          validExpenses.map((e) => ({
-            user_id: userId,
-            category: e.category,
-            amount: Number(e.amount),
-          }))
-        )
-      }
-
-      navigate('/dashboard')
+      await saveProfile(true)
+      await saveDebtsAndExpenses()
+      goToDashboard()
     } catch (err) {
-      console.error(err)
-    } finally {
+      setError(err.message || 'Could not save. Try Skip for now or check Supabase is set up.')
+      setLoading(false)
+    }
+  }
+
+  async function handleSkip() {
+    if (!userId) return
+    setError('')
+    setLoading(true)
+    try {
+      await saveProfile(true)
+      goToDashboard()
+    } catch (err) {
+      setError(err.message || 'Could not skip. Check Supabase env vars and run schema.sql.')
       setLoading(false)
     }
   }
@@ -221,6 +276,14 @@ export default function Onboarding() {
     },
   ]
 
+  if (checkingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+      </div>
+    )
+  }
+
   const current = steps[step - 1]
 
   return (
@@ -246,6 +309,12 @@ export default function Onboarding() {
           <h1 className="mt-1 font-heading text-2xl font-bold">{current.title}</h1>
           <div className="mt-6">{current.content}</div>
 
+          {error && (
+            <div className="mt-4 rounded-lg border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              {error}
+            </div>
+          )}
+
           <div className="mt-8 flex justify-between">
             {step > 1 ? (
               <Button variant="ghost" onClick={() => setStep(step - 1)} className="gap-1">
@@ -255,14 +324,25 @@ export default function Onboarding() {
               <div />
             )}
             {step < 4 ? (
-              <Button onClick={() => setStep(step + 1)} className="gap-1">
+              <Button type="button" onClick={() => setStep(step + 1)} className="gap-1">
                 Continue <ChevronRight className="h-4 w-4" />
               </Button>
             ) : (
-              <Button onClick={handleComplete} disabled={loading}>
+              <Button type="button" onClick={handleComplete} disabled={loading}>
                 {loading ? 'Saving...' : 'Go to Dashboard'}
               </Button>
             )}
+          </div>
+
+          <div className="mt-6 border-t border-border pt-6 text-center">
+            <button
+              type="button"
+              onClick={handleSkip}
+              disabled={loading}
+              className="text-sm text-muted transition-colors hover:text-text disabled:opacity-50"
+            >
+              Skip for now — set up later in dashboard
+            </button>
           </div>
         </div>
       </div>
