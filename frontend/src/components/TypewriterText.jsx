@@ -41,14 +41,22 @@ export default function TypewriterText({
     return () => clearInterval(id)
   }, [text, animate])
 
+  const lines = displayed.split('\n')
+  const lastIndex = Math.max(lines.length - 1, 0)
+
   return (
     <>
-      {displayed.split('\n').map((line, i) => (
-        <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
+      {lines.map((line, i) => (
+        <p key={i} className={i > 0 ? 'mt-2' : ''}>
+          {line}
+          {typing && i === lastIndex && (
+            <span
+              aria-hidden
+              className="ml-0.5 inline-block h-[1em] w-0.5 animate-pulse bg-accent align-text-bottom"
+            />
+          )}
+        </p>
       ))}
-      {typing && (
-        <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-accent align-middle" />
-      )}
     </>
   )
 }
